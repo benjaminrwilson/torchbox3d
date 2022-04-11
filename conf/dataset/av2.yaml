@@ -1,0 +1,87 @@
+# Argoverse Tracking Dataset Configuration.
+
+_target_: torchbox3d.datasets.argoverse.av2.ArgoverseDataModule  # Mapping to Python class for `hydra`.
+name: av2
+
+tasks_cfg:
+  # Define tasks here. Each task corresponds to a detection "head".
+  # Typically, similar classes are placed together.
+  # There are many different ways one could define "similarity"; however,
+  # one common way is by size.
+
+  # Each class should have a unique integer key. Additionally,
+  # the task keys should be contiguous (e.g., 0, 1, 2, ...).
+
+  0: ["REGULAR_VEHICLE"]
+
+  1: [
+    "PEDESTRIAN",
+    "BICYCLIST",
+    "MOTORCYCLIST",
+    "WHEELED_RIDER",
+  ]
+
+  2: [
+    "BOLLARD",
+    "CONSTRUCTION_CONE",
+    "SIGN",
+    "CONSTRUCTION_BARREL",
+    "STOP_SIGN",
+    "MOBILE_PEDESTRIAN_CROSSING_SIGN",
+  ]
+
+  3: [
+    "LARGE_VEHICLE",
+    "BUS",
+    "BOX_TRUCK",
+    "TRUCK",
+    "VEHICULAR_TRAILER",
+    "TRUCK_CAB",
+    "SCHOOL_BUS",
+    "ARTICULATED_BUS",
+    "MESSAGE_BOARD_TRAILER",
+  ]
+
+  4: [
+    "BICYCLE",
+    "MOTORCYCLE",
+    "WHEELED_DEVICE",
+    "WHEELCHAIR",
+    "STROLLER",
+  ]
+
+  5: [
+    "DOG",
+  ]
+
+  # ignore
+  # "RAILED_VEHICLE" (too few instances)
+  # "TRAFFIC_LIGHT_TRAILER" (too few instances)
+  # "OFFICIAL_SIGNALER" (Zero instances in val)
+  # "ANIMAL" (Zero instances in val)
+
+train_transforms_cfg:  # Validation transforms.
+  voxelize:
+    _target_: torchbox3d.math.transforms.voxelize.Voxelize
+
+    resolution_m_per_cell: ${model.arch_cfg.backbone_cfg.resolution_m_per_cell}
+    min_range_m: ${model.arch_cfg.backbone_cfg.min_range_m}
+    max_range_m: ${model.arch_cfg.backbone_cfg.max_range_m}
+    voxelization_type: ${model.arch_cfg.backbone_cfg.voxelization_type}
+
+  splatter_heatmap:
+    _target_: torchbox3d.math.transforms.splatter_heatmap.SplatterHeatmap  # Mapping to Python class for `hydra`.
+    
+    tasks_cfg: ${dataset.tasks_cfg}  # Task mapping. Maps unique integers to lists of target classes.
+    network_stride: ${model.arch_cfg.network_stride}  # Spatial downsampling factor between input resolution and output resolution.
+    dataset_name: ${dataset.name}
+
+# Validation transforms.
+val_transforms_cfg:
+  voxelize: ${dataset.train_transforms_cfg.voxelize}
+  splatter_heatmap: ${dataset.train_transforms_cfg.splatter_heatmap}
+
+ # Test transforms.
+test_transforms_cfg:
+  voxelize: ${dataset.train_transforms_cfg.voxelize}
+  splatter_heatmap: ${dataset.train_transforms_cfg.splatter_heatmap}

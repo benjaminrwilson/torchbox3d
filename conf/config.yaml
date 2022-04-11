@@ -1,0 +1,60 @@
+---
+
+##########################################################################################################
+# EXPERIMENT CONFIGURATION FILE                                                                          #
+##########################################################################################################
+
+defaults:
+  - model: centerpoint_200x200m # Model for experiment.
+  - dataset: av2  # Dataset for experiment.
+  - _self_
+
+##########################################################################################################
+# DEBUGGING FLAG                                                                                         #
+##########################################################################################################
+
+debug: False  # For model debugging.
+
+##########################################################################################################
+# Hyperparameter Configuration                                                                           #
+##########################################################################################################
+
+batch_size: 2 # Batch size of dataloader.
+lr: 1e-3  # Learning rate.
+num_workers: auto  # Number of dataloader workers.
+
+##########################################################################################################
+# Trainer Configuration                                                                                  #
+##########################################################################################################
+
+trainer:
+  accelerator: auto  # torch.distributed backend. Defaults to distributed data parallel.
+  devices: auto  # Number of GPUs. Defaults to -1 which maps to using all visible GPUs.
+  gradient_clip_val: 35.0  # Maximum gradient norm before clipping.
+  max_epochs: 5  # Maximum number of epochs during training.
+
+  ########################################################################################################
+  # Debugging / Subsampling options                                                                      #
+  ########################################################################################################
+
+  # check_val_every_n_epoch: 1
+  # limit_train_batches: 0.1
+  # limit_val_batches: 0.1
+  num_sanity_val_steps: 0
+  # overfit_batches: 1
+  # val_check_interval: 0.1
+
+##########################################################################################################
+# Hydra Configuration / Logging                                                                          #
+##########################################################################################################
+
+dst_dir: experiments  # Dest
+src_dir: ${oc.env:HOME}/data/datasets/${dataset.name}/sensor  # Source directory for data.
+
+hydra:
+  run:
+    dir: ${dst_dir}/${model.name}/${now:%Y-%m-%d-%H-%M-%S}
+  job:
+    env_set:
+      NCCL_NSOCKS_PERTHREAD: "4"
+      NCCL_SOCKET_NTHREADS: "2"

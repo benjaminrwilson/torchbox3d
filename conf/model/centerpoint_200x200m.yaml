@@ -1,0 +1,82 @@
+##########################################################################
+# CenterPoint                                                            #
+##########################################################################
+
+# The Centerpoint architecture configuration file.
+
+# This consists of three main components:
+# backbone - 3D processing portion of the network
+# neck - 2D processing portion following 3D feature extraction
+# head - Classification / regression, etc. This portion of the network is task specific.
+
+name: "centerpoint"
+
+arch_cfg:
+  _target_: torchbox3d.nn.arch.centerpoint.CenterPoint
+
+  tasks_cfg: ${dataset.tasks_cfg}
+
+  network_stride: 8
+  pct_start: 0.4
+  div_factor: 10.0
+  max_k: 100
+  train_log_freq: 10
+  val_log_freq: 10
+
+  devices: ${trainer.devices}
+  lr: ${lr}
+
+  epochs: ${trainer.max_epochs}
+
+  src_dir: ${src_dir}
+  dst_dir: ${dst_dir}
+
+  batch_size: ${batch_size}
+  debug: ${debug}
+
+  ##########################################################################
+  # BACKBONE                                                               #
+  ##########################################################################
+
+  backbone_cfg:
+    _target_: torchbox3d.nn.backbones.sparse_voxelnet.SparseVoxelNet
+    name: "sparse-voxelnet"
+    dim_in: 4  # Number of input dimensions
+    resolution_m_per_cell: [0.1, 0.1, 0.2]
+    min_range_m: [-204.8, -204.8, -3.2]
+    max_range_m: [204.8, 204.8, 3.2]
+    voxelization_type: pool
+
+  ##########################################################################
+  # NECK                                                                   #
+  ##########################################################################
+
+  neck_cfg:
+    _target_: torchbox3d.nn.nets.resnet.ResNet
+    name: "resnet"
+
+    in_channels: 256  # Number of input channels.
+    layer_nums: [5, 5]  # Number of downsampling / upsampling layers.
+    down_strides: [1, 2]  # Stride per downsampling layer.
+    down_planes: [128, 256]  # Number of filters per downsampling layer.
+    up_strides: [1, 2]  # Stride per upsampling layer.
+    num_up_filters: [256, 256]  # Number of filters per upsampling layer.
+
+  ##########################################################################
+  # HEAD                                                                   #
+  ##########################################################################
+
+  head_cfg:
+    # Center Head Configuration.
+    _target_: torchbox3d.nn.heads.center.CenterHead
+
+    tasks_cfg: ${dataset.tasks_cfg}  # Task mapping. Maps unique integers to lists of target classes.
+
+    in_channels: 512  # Number of input channels.
+    weight: 0.25  # Regression loss weighting.
+    common_heads:  # Defines the output of the task heads.
+      center: [2, 2]
+      height: [1, 2]
+      dim: [3, 2]
+      rot: [2, 2]
+    task_in_channels: 64  # Task head channels.
