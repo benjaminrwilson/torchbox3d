@@ -211,12 +211,12 @@ class CenterPoint(Detector):
         try:
             from torch.distributed import is_initialized
 
-            if is_initialized():
+            if is_initialized():  # type: ignore
                 # Gather detections from all gpus.
                 gathered_outputs: List[Optional[pd.DataFrame]] = [
                     None
-                ] * dist.get_world_size()
-                dist.all_gather_object(gathered_outputs, dts)
+                ] * dist.get_world_size()  # type: ignore
+                dist.all_gather_object(gathered_outputs, dts)  # type: ignore
                 dts = pd.concat(gathered_outputs)
         except ImportError:
             pass
