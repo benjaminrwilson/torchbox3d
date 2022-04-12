@@ -1,0 +1,34 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test_and_build:
+    name: ${{ matrix.os }}_${{ matrix.venv_backend }}_py${{ matrix.python_version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        python_version:
+          ["3.8", "3.9", "3.10"]
+        venv_backend:
+          ["mamba"]
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          miniforge-version: latest
+          python-version: ${{ matrix.python_version }}
+
+      - name: Install prerequisites.
+        run: |
+          mamba install -y nox pip pyyaml
+
+      - name: Run nox with ${{ matrix.venv_backend }}.
+        run: |  # Cache the environments (-r), fail on missing python interpreters (--error-on-missing-interpreters), set dependency resolver backend.
+          python -m nox -r --error-on-missing-interpreters --python ${{ matrix.python_version }} --default-venv-backend ${{ matrix.venv_backend }}
