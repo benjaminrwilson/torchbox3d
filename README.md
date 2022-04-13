@@ -4,6 +4,12 @@
 
 > `torchbox3d` is a *3D perception* library for **autonomous driving datasets**.
 
+## Overview
+
+- Currently supports 3D object detection on the Argoverse 2 Sensor dataset.
+- Native `pytorch-lightning` support.
+- Multi-gpu training.
+
 ## Supported Models
 
 - Architectures:
