@@ -39,7 +39,6 @@ The project configuration file can be found in `conf/config.yaml`.
 To launch a training session, simply run:
 
 ```bash
-conda activate torchbox3d
 python scripts/train.py
 ```
 
