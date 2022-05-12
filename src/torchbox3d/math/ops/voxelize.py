@@ -130,4 +130,5 @@ def voxelize_concatenate_kernel(
         inverse_indices[is_valid], index[is_valid].long()
     ] = values[is_valid]
     voxelized_indices = unravel_index(output, list(voxel_grid.dims))
-    return voxelized_indices.int(), voxelized_values, counts, roi_mask
+    inv_perm = perm.argsort()
+    return voxelized_indices.int()[inv_perm], voxelized_values[inv_perm], counts[inv_perm], roi_mask[inv_perm]

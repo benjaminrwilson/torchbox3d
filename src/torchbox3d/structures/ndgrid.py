@@ -27,6 +27,23 @@ class NDGrid:
     max_range_m: Tuple[float, ...]
     resolution_m_per_cell: Tuple[float, ...]
 
+    def __post_init__(self) -> None:
+        """Validate the NDGrid sizes."""
+        D_min = len(self.min_dim_m)
+        D_max = len(self.max_range_m)
+        D_res = len(self.resolution_m_per_cell)
+
+        if D_min != D_max and D_max != D_res:
+            raise ValueError(
+                "`min_range_m`, `max_range_m` and `resolution_m_per_cell` "
+                "must have the same dimension!"
+            )
+
+    @cached_property
+    def N(self) -> int:
+        """Return the dimension of the grid."""
+        return len(self.min_range_m)
+
     @cached_property
     def dims(self) -> Tuple[int, ...]:
         """Size of the grid _after_ bucketing."""
@@ -65,23 +82,23 @@ class NDGrid:
         Returns:
             (N,D) list of scaled points.
         """
-        D = points.shape[-1]
+        N = min(self.N, points.shape[-1])
         resolution_m_per_cell = torch.as_tensor(
             self.resolution_m_per_cell,
             device=points.device,
             dtype=torch.float,
         )
-        scaled_points: Tensor = points / resolution_m_per_cell[:D]
+        scaled_points: Tensor = points[..., :N] / resolution_m_per_cell[:N]
         return scaled_points
 
     def quantize_points(self, points: Tensor) -> Tensor:
         """Quantize the points to integer coordinates.
 
         Args:
-            points: (N,D) list of points.
+            points: (N,D) List of points.
 
         Returns:
-            (N,D) list of quantized points.
+            (N,D) List of quantized points.
         """
         # Add half-bucket offset.
         centered_points: Tensor = align_corners(points)
@@ -112,19 +129,16 @@ class NDGrid:
         Returns:
             (N,D) list of quantized grid coordinates.
         """
-        D = points_m.shape[-1]
-        min_range_m = torch.as_tensor(
-            self.min_range_m, device=points_m.device, dtype=points_m.dtype
-        )
-        offset_m = min_range_m.abs()
+        D = min(points_m.shape[-1], len(self.min_range_m))
+        offset_m = torch.zeros_like(points_m[0])
+        offset_m[:D] = torch.as_tensor(self.min_range_m[:D]).abs()
+
         quantized_points_grid = self.scale_and_quantize_points(
-            points_m + offset_m[:D]
+            points_m + offset_m
         )
 
-        upper = list(self.dims)
-        _, mask = crop_points(
-            quantized_points_grid, [0.0, 0.0, 0.0][:D], upper[:D]
-        )
+        upper = [float(x) for x in self.dims]
+        _, mask = crop_points(quantized_points_grid, [0.0, 0.0, 0.0], upper)
         return quantized_points_grid, mask
 
 
