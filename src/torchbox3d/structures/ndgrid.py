@@ -7,6 +7,7 @@ from functools import cached_property
 from typing import List, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
 
 from torchbox3d.math.crop import crop_points
@@ -14,7 +15,7 @@ from torchbox3d.rendering.ops.shaders import align_corners
 
 
 @dataclass
-class NDGrid:
+class RegularGrid:
     """Models an N-dimensional grid.
 
     Args:
@@ -152,9 +153,53 @@ class NDGrid:
         min_range_m = [abs(x) for x in self.min_range_m]
         return tuple(min_range_m)
 
+    @torch.jit.script
+    def sweep_to_bev(
+        self,
+        points_xyz: Tensor,
+    ) -> Tensor:
+        """Construct an image from a point cloud.
+
+        Args:
+            points_xyz: (N,3) Tensor of Cartesian points.
+            dims: Voxel grid dimensions.
+
+        Returns:
+            (B,C,H,W) Bird's-eye view image.
+        """
+        indices, mask = self.transform_to_grid_coordinates(points_xyz)
+        indices = indices[mask]
+        # Return an empty image if no indices are available after cropping.
+        if len(indices) == 0:
+            dims = [1, 1] + list(self.dims[:2])
+            return torch.zeros(
+                dims,
+                device=points_xyz.device,
+                dtype=points_xyz.dtype,
+            )
+
+        if indices.shape[-1] == 3:
+            indices = F.pad(indices, [0, 1], "constant", 0.0)
+
+        values = torch.ones_like(indices[..., 0], dtype=torch.float)
+        sparse_dims: List[int] = list(self.dims)
+        dense_dims = [int(indices[:, -1].max().item()) + 1]
+
+        if len(sparse_dims) == 2:
+            sparse_dims += [1]
+        size = sparse_dims + dense_dims
+
+        voxels: Tensor = torch.sparse_coo_tensor(
+            indices=indices.T, values=values, size=size
+        )
+        voxels = torch.sparse.sum(voxels, dim=(2,))
+        bev = voxels.to_dense()
+        bev = bev.permute(2, 0, 1)[:, None]
+        return bev
+
 
 @dataclass
-class VoxelGrid(NDGrid):
+class VoxelGrid(RegularGrid):
     """Representation of a voxel grid."""
 
     min_range_m: Tuple[float, float, float]
@@ -163,7 +208,7 @@ class VoxelGrid(NDGrid):
 
 
 @dataclass
-class BEVGrid(NDGrid):
+class BEVGrid(RegularGrid):
     """Representation of a bird's-eye view grid."""
 
     min_range_m: Tuple[float, float]

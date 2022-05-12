@@ -156,7 +156,7 @@ def circles(
 
     if antialias:
         mu = uv.repeat_interleave(int(radius**2), 0)
-        sigma = torch.ones_like(mu[:, 0])
+        sigma = torch.ones_like(mu[:, 0:1])
         alpha = gaussian_kernel(ogrid_uv, mu, sigma).prod(dim=-1, keepdim=True)
         tex *= alpha
 

@@ -1,9 +1,7 @@
 """Geometric conversions."""
 
-from typing import List, Tuple
 
 import torch
-import torch.nn.functional as F
 from torch import Tensor
 
 
@@ -71,41 +69,3 @@ def sph_to_cart(sph_rad: Tensor) -> Tensor:
     z = radius * inclination.sin()
     cart_xyz = torch.stack((x, y, z), dim=-1)
     return cart_xyz
-
-
-@torch.jit.script
-def sweep_to_bev(points_xyz: Tensor, dims: List[int]) -> Tensor:
-    """Construct an image from a point cloud.
-
-    Args:
-        points_xyz: (N,3) Tensor of Cartesian points.
-        dims: Voxel grid dimensions.
-
-    Returns:
-        (B,C,H,W) Bird's-eye view image.
-    """
-    indices = points_xyz.long()
-    # Return an empty image if no indices are available after cropping.
-    if len(indices) == 0:
-        return torch.zeros(
-            [1, 1] + dims[:2],
-            device=points_xyz.device,
-            dtype=points_xyz.dtype,
-        )
-
-    if indices.shape[-1] == 3:
-        indices = F.pad(indices, [0, 1], "constant", 0.0)
-
-    values = torch.ones_like(indices[..., 0], dtype=torch.float)
-
-    sparse_dims: List[int] = list(dims)
-    dense_dims = [int(indices[:, -1].max().item()) + 1]
-    size = sparse_dims + [1] + dense_dims
-
-    voxels: Tensor = torch.sparse_coo_tensor(
-        indices=indices.T, values=values, size=size
-    )
-    voxels = torch.sparse.sum(voxels, dim=(2,))
-    bev = voxels.to_dense()
-    bev = bev.permute(2, 0, 1)[:, None]
-    return bev
