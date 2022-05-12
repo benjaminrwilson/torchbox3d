@@ -69,7 +69,7 @@ class NDGrid:
         resolution_m_per_cell = torch.as_tensor(
             self.resolution_m_per_cell,
             device=points.device,
-            dtype=points.dtype,
+            dtype=torch.float,
         )
         scaled_points: Tensor = points / resolution_m_per_cell[:D]
         return scaled_points
