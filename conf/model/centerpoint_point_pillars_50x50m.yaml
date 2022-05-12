@@ -14,9 +14,58 @@ name: "centerpoint"
 arch_cfg:
   _target_: torchbox3d.nn.arch.centerpoint.CenterPoint
 
-  tasks_cfg: ${dataset.tasks_cfg}
+  tasks_cfg:
+    # Define tasks here. Each task corresponds to a detection "head".
+    # Typically, similar classes are placed together.
+    # There are many different ways one could define "similarity"; however,
+    # one common way is by size.
 
-  network_stride: 8
+    # Each class should have a unique integer key. Additionally,
+    # the task keys should be contiguous (e.g., 0, 1, 2, ...).
+
+    0: ["REGULAR_VEHICLE"]
+
+    1: [
+      "PEDESTRIAN",
+      "BICYCLIST",
+      "MOTORCYCLIST",
+      "WHEELED_RIDER",
+    ]
+
+    2: [
+      "BOLLARD",
+      "CONSTRUCTION_CONE",
+      "SIGN",
+      "CONSTRUCTION_BARREL",
+      "STOP_SIGN",
+      "MOBILE_PEDESTRIAN_CROSSING_SIGN",
+    ]
+
+    3: [
+      "LARGE_VEHICLE",
+      "BUS",
+      "BOX_TRUCK",
+      "TRUCK",
+      "VEHICULAR_TRAILER",
+      "TRUCK_CAB",
+      "SCHOOL_BUS",
+      "ARTICULATED_BUS",
+      "MESSAGE_BOARD_TRAILER",
+    ]
+
+    4: [
+      "BICYCLE",
+      "MOTORCYCLE",
+      "WHEELED_DEVICE",
+      "WHEELCHAIR",
+      "STROLLER",
+    ]
+
+    5: [
+      "DOG",
+    ]
+
+  network_stride: 4
   pct_start: 0.4
   div_factor: 10.0
   max_k: 100
@@ -69,13 +118,13 @@ arch_cfg:
   ##########################################################################
 
   backbone_cfg:
-    _target_: torchbox3d.nn.backbones.sparse_voxelnet.SparseVoxelNet
-    name: "sparse-voxelnet"
+    _target_: torchbox3d.nn.backbones.point_pillars.PointPillars
+    name: pointpillars
     dim_in: 4  # Number of input dimensions
-    resolution_m_per_cell: [0.1, 0.1, 0.2]
-    min_range_m: [-51.2, -51.2, -3.2]
-    max_range_m: [51.2, 51.2, 3.2]
-    voxelization_type: pool
+    resolution_m_per_cell: [0.4, 0.4, 10.0]
+    min_range_m: [-25.6, -25.6, -5.0]
+    max_range_m: [25.6, 25.6, 5.0]
+    voxelization_type: concatenate
 
   ##########################################################################
   # NECK                                                                   #
@@ -83,14 +132,13 @@ arch_cfg:
 
   neck_cfg:
     _target_: torchbox3d.nn.nets.resnet.ResNet
-    name: "resnet"
-
-    in_channels: 256  # Number of input channels.
-    layer_nums: [5, 5]  # Number of downsampling / upsampling layers.
-    down_strides: [1, 2]  # Stride per downsampling layer.
-    down_planes: [128, 256]  # Number of filters per downsampling layer.
-    up_strides: [1, 2]  # Stride per upsampling layer.
-    num_up_filters: [256, 256]  # Number of filters per upsampling layer.
+    name: resnet
+    in_channels: 64  # Number of input channels.
+    layer_nums: [3, 5, 5]  # Number of downsampling / upsampling layers.
+    down_strides: [2, 2, 2]  # Stride per downsampling layer.
+    down_planes: [64, 128, 256]  # Number of filters per downsampling layer.
+    up_strides: [0.5, 1, 2]  # Stride per upsampling layer.
+    num_up_filters: [128, 128, 128]  # Number of filters per upsampling layer.
 
   ##########################################################################
   # HEAD                                                                   #
@@ -99,10 +147,8 @@ arch_cfg:
   head_cfg:
     # Center Head Configuration.
     _target_: torchbox3d.nn.heads.center.CenterHead
-
     tasks_cfg: ${dataset.tasks_cfg}  # Task mapping. Maps unique integers to lists of target classes.
-
-    in_channels: 512  # Number of input channels.
+    in_channels: 384  # Number of input channels.
     weight: 0.25  # Regression loss weighting.
     common_heads:  # Defines the output of the task heads.
       center: [2, 2]
