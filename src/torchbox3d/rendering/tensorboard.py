@@ -46,7 +46,7 @@ def to_tensorboard(
     counts_list: List[int] = counts.tolist()
     voxel_list = gts.voxels.C[..., :3].split(counts_list)
 
-    bev = sweep_to_bev(voxel_list[0], gts.grid.dims)[0]
+    bev = sweep_to_bev(voxel_list[0], list(gts.grid.dims))[0]
     bev = bev.repeat(3, 1, 1)
     bev = denormalize_pixel_intensities(bev)
     _draw_cuboids(gts.cuboids, bev, gts.grid, (0, 0, 255))

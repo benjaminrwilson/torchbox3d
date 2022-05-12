@@ -141,6 +141,17 @@ class NDGrid:
         _, mask = crop_points(quantized_points_grid, [0.0, 0.0, 0.0], upper)
         return quantized_points_grid, mask
 
+    def downsample(self, stride: int) -> Tuple[int, int, int]:
+        """Downsample the grid coordinates."""
+        downsampled_dims = [int(d / stride) for d in self.dims]
+        return tuple(downsampled_dims)
+
+    @cached_property
+    def grid_offset_m(self) -> Tuple[float, float, float]:
+        """Return the grid offset from the lower bound to the grid origin."""
+        min_range_m = [abs(x) for x in self.min_range_m]
+        return tuple(min_range_m)
+
 
 @dataclass
 class VoxelGrid(NDGrid):
@@ -149,17 +160,6 @@ class VoxelGrid(NDGrid):
     min_range_m: Tuple[float, float, float]
     max_range_m: Tuple[float, float, float]
     resolution_m_per_cell: Tuple[float, float, float]
-
-    @cached_property
-    def grid_offset_m(self) -> Tuple[float, float, float]:
-        """Return the grid offset from the lower bound to the grid origin."""
-        min_x, min_y, min_z = self.min_range_m
-        return (abs(min_x), abs(min_y), abs(min_z))
-
-    def downsample(self, stride: int) -> Tuple[int, int, int]:
-        """Downsample the grid coordinates."""
-        vx, vy, vz = self.dims
-        return (int(vx / stride), int(vy / stride), int(vz / stride))
 
 
 @dataclass

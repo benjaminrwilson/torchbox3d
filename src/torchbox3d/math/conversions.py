@@ -74,7 +74,7 @@ def sph_to_cart(sph_rad: Tensor) -> Tensor:
 
 
 @torch.jit.script
-def sweep_to_bev(points_xyz: Tensor, dims: Tuple[int, int, int]) -> Tensor:
+def sweep_to_bev(points_xyz: Tensor, dims: List[int]) -> Tensor:
     """Construct an image from a point cloud.
 
     Args:
@@ -88,7 +88,7 @@ def sweep_to_bev(points_xyz: Tensor, dims: Tuple[int, int, int]) -> Tensor:
     # Return an empty image if no indices are available after cropping.
     if len(indices) == 0:
         return torch.zeros(
-            (1, 1) + dims[:2],
+            [1, 1] + dims[:2],
             device=points_xyz.device,
             dtype=points_xyz.dtype,
         )
@@ -100,7 +100,7 @@ def sweep_to_bev(points_xyz: Tensor, dims: Tuple[int, int, int]) -> Tensor:
 
     sparse_dims: List[int] = list(dims)
     dense_dims = [int(indices[:, -1].max().item()) + 1]
-    size = sparse_dims + dense_dims
+    size = sparse_dims + [1] + dense_dims
 
     voxels: Tensor = torch.sparse_coo_tensor(
         indices=indices.T, values=values, size=size

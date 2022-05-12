@@ -92,12 +92,12 @@ class PointPillars(LightningModule):
         Returns:
             The BEV canvas with scatter pillar encodings.
         """
-        L, W, H = grid.dims[:3]
+        L, W = grid.dims[:2]
         B = int(indices[..., -1].max().item() + 1)
         D = int(x.shape[-1])
 
         canvas: Tensor = scatter_nd(
-            indices, src=x, shape=[W, L, H, B, D], perm=[3, 4, 2, 0, 1]
+            indices, src=x, shape=[W, L, B, D], perm=[2, 3, 0, 1]
         )
         canvas = canvas.reshape(B, -1, L, W)
         return canvas

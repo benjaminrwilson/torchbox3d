@@ -89,7 +89,7 @@ arch_cfg:
 
   train_transforms_cfg:
     voxelize:
-      _target_: torchbox3d.math.transforms.voxelize.Voxelize
+      _target_: torchbox3d.math.transforms.voxelize.Pillarize
 
       resolution_m_per_cell: ${model.arch_cfg.backbone_cfg.resolution_m_per_cell}
       min_range_m: ${model.arch_cfg.backbone_cfg.min_range_m}
@@ -121,9 +121,9 @@ arch_cfg:
     _target_: torchbox3d.nn.backbones.point_pillars.PointPillars
     name: pointpillars
     dim_in: 4  # Number of input dimensions
-    resolution_m_per_cell: [0.4, 0.4, 10.0]
-    min_range_m: [-25.6, -25.6, -5.0]
-    max_range_m: [25.6, 25.6, 5.0]
+    resolution_m_per_cell: [0.4, 0.4]
+    min_range_m: [-25.6, -25.6]
+    max_range_m: [25.6, 25.6]
     voxelization_type: concatenate
 
   ##########################################################################

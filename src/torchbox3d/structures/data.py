@@ -9,7 +9,7 @@ from torch import Tensor
 
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.meta import TensorStruct
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.ndgrid import NDGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
 from torchbox3d.structures.targets import GridTargets
 
@@ -34,6 +34,6 @@ class RegularGridData(Data):
         targets: Target encodings.
     """
 
-    grid: VoxelGrid
+    grid: NDGrid
     voxels: SparseTensor
     targets: GridTargets
