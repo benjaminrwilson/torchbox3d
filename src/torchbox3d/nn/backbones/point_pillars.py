@@ -11,22 +11,21 @@ from torch.nn.modules.linear import Linear
 
 from torchbox3d.math.ops.index import scatter_nd
 from torchbox3d.structures.data import RegularGridData
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.ndgrid import NDGrid
 from torchbox3d.utils.io import write_img
 
 
 @dataclass(unsafe_hash=True)
 class PointPillars(LightningModule):
-    """Implmentation of Pointpillars."""
+    """Implementation of Pointpillars."""
 
     dim_in: int
     resolution_m_per_cell: Tuple[int, int, int]
-    min_range_m: Tuple[int, int, int]
-    max_range_m: Tuple[int, int, int]
+    min_range_m: Tuple[int, int]
+    max_range_m: Tuple[int, int]
     voxelization_type: str
-
-    name: str = "pointpillars"
     debug: bool = False
+    name: str = "point_pillars"
 
     def __post_init__(self) -> None:
         """Initialize network modules."""
@@ -65,14 +64,14 @@ class PointPillars(LightningModule):
         Returns:
             A dictionary of layer names to outputs.
         """
-        indices = data.voxels.C
+        indices = data.voxels.C.long()
         x = data.voxels.F
         x, _ = self.pointnet(x)
-        canvas = self.pillar_scatter(x, indices.long(), data.grid)
+        canvas = self.pillar_scatter(x, indices, data.grid)
 
         if self.debug:
-            path = Path.home() / "code" / "torchbox" / "bev.png"
-            img = canvas.clone().detach().sum(dim=1)
+            path = Path.home() / "code" / "bev.png"
+            img = canvas.clone().detach().sum(dim=1, keepdim=True)[0]
             img /= img.max()
             write_img(img.mul(255.0).byte().cpu(), str(path))
 
@@ -80,7 +79,7 @@ class PointPillars(LightningModule):
         return outputs
 
     def pillar_scatter(
-        self, x: Tensor, indices: Tensor, grid: VoxelGrid
+        self, x: Tensor, indices: Tensor, grid: NDGrid
     ) -> Tensor:
         """Scatter the pillars on the BEV canvas.
 

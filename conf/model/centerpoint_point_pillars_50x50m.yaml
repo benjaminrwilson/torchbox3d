@@ -121,9 +121,9 @@ arch_cfg:
     _target_: torchbox3d.nn.backbones.point_pillars.PointPillars
     name: pointpillars
     dim_in: 4  # Number of input dimensions
-    resolution_m_per_cell: [0.4, 0.4]
-    min_range_m: [-25.6, -25.6]
-    max_range_m: [25.6, 25.6]
+    resolution_m_per_cell: [0.2, 0.2]
+    min_range_m: [-12.8, -12.8]
+    max_range_m: [12.8, 12.8]
     voxelization_type: concatenate
 
   ##########################################################################
