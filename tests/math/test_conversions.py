@@ -9,7 +9,7 @@ import torch
 from av2.utils.io import read_feather
 from torch import Tensor
 
-from torchbox3d.structures.ndgrid import RegularGrid, VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 from torchbox3d.utils.io import write_img
 
 TEST_DATA_DIR: Final[Path] = (

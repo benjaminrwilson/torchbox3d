@@ -6,7 +6,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchbox3d.structures.ndgrid import RegularGrid
+from torchbox3d.structures.regular_grid import RegularGrid
 
 
 @pytest.mark.parametrize(

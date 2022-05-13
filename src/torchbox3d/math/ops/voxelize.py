@@ -10,7 +10,7 @@ from torch import Tensor
 from torchbox3d.math.crop import crop_points
 from torchbox3d.math.ops.index import ravel_multi_index, unravel_index
 from torchbox3d.math.ops.pool import voxel_pool
-from torchbox3d.structures.ndgrid import RegularGrid, VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 
 
 @unique

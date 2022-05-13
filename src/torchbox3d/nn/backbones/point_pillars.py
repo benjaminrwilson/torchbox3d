@@ -11,7 +11,7 @@ from torch.nn.modules.linear import Linear
 
 from torchbox3d.math.ops.index import scatter_nd
 from torchbox3d.structures.data import RegularGridData
-from torchbox3d.structures.ndgrid import RegularGrid
+from torchbox3d.structures.regular_grid import RegularGrid
 from torchbox3d.utils.io import write_img
 
 

@@ -9,7 +9,7 @@ import torch
 from torchbox3d.math.neighbors import voxelize
 from torchbox3d.math.ops.voxelize import VoxelizationType
 from torchbox3d.structures.data import Data, RegularGridData
-from torchbox3d.structures.ndgrid import BEVGrid, VoxelGrid
+from torchbox3d.structures.regular_grid import BEVGrid, VoxelGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
 
 

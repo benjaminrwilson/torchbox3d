@@ -30,7 +30,7 @@ class RegularGrid:
 
     def __post_init__(self) -> None:
         """Validate the NDGrid sizes."""
-        D_min = len(self.min_dim_m)
+        D_min = len(self.min_dim)
         D_max = len(self.max_range_m)
         D_res = len(self.resolution_m_per_cell)
 
@@ -49,20 +49,18 @@ class RegularGrid:
     def dims(self) -> Tuple[int, ...]:
         """Size of the grid _after_ bucketing."""
         range_m: Tensor = torch.as_tensor(self.range_m)
-        dims: List[int] = (
-            self.scale_and_quantize_points(range_m) + 1
-        ).tolist()
+        dims: List[int] = (self.scale_and_quantize_points(range_m)).tolist()
         return tuple(dims)
 
     @cached_property
-    def min_dim_m(self) -> Tuple[int, ...]:
+    def min_dim(self) -> Tuple[int, ...]:
         """Size of the grid _after_ bucketing."""
         min_range_m: Tensor = torch.as_tensor(self.min_range_m)
         dims: List[int] = self.scale_and_quantize_points(min_range_m).tolist()
         return tuple(dims)
 
     @cached_property
-    def max_dim_m(self) -> Tuple[int, ...]:
+    def max_dim(self) -> Tuple[int, ...]:
         """Size of the grid _after_ bucketing."""
         max_range_m: Tensor = torch.as_tensor(self.max_range_m)
         dims: List[int] = self.scale_and_quantize_points(max_range_m).tolist()
@@ -155,29 +153,28 @@ class RegularGrid:
         min_range_m = [abs(x) for x in self.min_range_m]
         return tuple(min_range_m)
 
-    @torch.jit.script
     def sweep_to_bev(
         self,
-        points_xyz: Tensor,
+        points_m: Tensor,
     ) -> Tensor:
         """Construct an image from a point cloud.
 
         Args:
-            points_xyz: (N,3) Tensor of Cartesian points.
+            points_m: (N,3) Tensor of Cartesian points.
             dims: Voxel grid dimensions.
 
         Returns:
             (B,C,H,W) Bird's-eye view image.
         """
-        indices, mask = self.transform_to_grid_coordinates(points_xyz)
+        indices, mask = self.transform_to_grid_coordinates(points_m)
         indices = indices[mask]
         # Return an empty image if no indices are available after cropping.
         if len(indices) == 0:
             dims = [1, 1] + list(self.dims[:2])
             return torch.zeros(
                 dims,
-                device=points_xyz.device,
-                dtype=points_xyz.dtype,
+                device=points_m.device,
+                dtype=points_m.dtype,
             )
 
         if indices.shape[-1] == 3:
@@ -185,17 +182,20 @@ class RegularGrid:
 
         values = torch.ones_like(indices[..., 0], dtype=torch.float)
         sparse_dims: List[int] = list(self.dims)
-        dense_dims = [int(indices[:, -1].max().item()) + 1]
 
-        if len(sparse_dims) == 2:
-            sparse_dims += [1]
+        dense_dims = []
+        if indices.shape[-1] > 2:
+            dense_dims = [int(indices[:, -1].max().item()) + 1]
         size = sparse_dims + dense_dims
 
         voxels: Tensor = torch.sparse_coo_tensor(
             indices=indices.T, values=values, size=size
         )
-        voxels = torch.sparse.sum(voxels, dim=(2,))
+        if len(sparse_dims) > 2:
+            voxels = torch.sparse.sum(voxels, dim=(-2,))
         bev = voxels.to_dense()
+        if bev.ndim == 2:
+            bev = bev.unsqueeze(-1)
         bev = bev.permute(2, 0, 1)[:, None]
         return bev
 
