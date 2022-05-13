@@ -62,6 +62,7 @@ def test_RegularGrid(
     torch.testing.assert_allclose(
         RegularGrid.quantize_points(points), quantized_points
     )
+
     torch.testing.assert_allclose(
-        RegularGrid.transform_to_grid_coordinates(points), grid_coords
+        RegularGrid.transform_to_grid_coordinates(points)[0], grid_coords
     )

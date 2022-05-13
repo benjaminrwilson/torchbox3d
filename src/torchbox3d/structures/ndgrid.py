@@ -49,7 +49,9 @@ class RegularGrid:
     def dims(self) -> Tuple[int, ...]:
         """Size of the grid _after_ bucketing."""
         range_m: Tensor = torch.as_tensor(self.range_m)
-        dims: List[int] = self.scale_and_quantize_points(range_m).tolist()
+        dims: List[int] = (
+            self.scale_and_quantize_points(range_m) + 1
+        ).tolist()
         return tuple(dims)
 
     @cached_property
