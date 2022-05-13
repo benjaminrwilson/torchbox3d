@@ -1,14 +1,17 @@
 """General object detection model."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
+import torch
 from hydra.utils import instantiate
 from omegaconf import MISSING
 from omegaconf.dictconfig import DictConfig
 from pytorch_lightning import LightningModule
 from torch.optim.adamw import AdamW
 from torch.optim.lr_scheduler import OneCycleLR, _LRScheduler  # type: ignore
+
+from torchbox3d.structures.data import Data
 
 
 @dataclass(unsafe_hash=True)
@@ -42,6 +45,10 @@ class Detector(LightningModule):
     dataset_name: str = MISSING
     steps_per_epoch: int = MISSING
 
+    train_transforms_cfg: Optional[Callable[[Data], Data]] = MISSING
+    val_transforms_cfg: Optional[Callable[[Data], Data]] = MISSING
+    test_transforms_cfg: Optional[Callable[[Data], Data]] = MISSING
+
     backbone: LightningModule = field(init=False)
     neck: LightningModule = field(init=False)
     head: LightningModule = field(init=False)
@@ -70,7 +77,9 @@ class Detector(LightningModule):
         if self.trainer is None:
             raise RuntimeError("Trainer must not be `None`!")
 
-        self.cuda()
+        if torch.cuda.is_available():
+            self.cuda()
+
         self.trainer.reset_train_dataloader()
         optimizer = AdamW(self.parameters(), lr=self.max_lr)
         lr_dict: Dict[str, Any] = {}

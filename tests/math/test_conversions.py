@@ -9,8 +9,7 @@ import torch
 from av2.utils.io import read_feather
 from torch import Tensor
 
-from torchbox3d.math.conversions import sweep_to_bev
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 from torchbox3d.utils.io import write_img
 
 TEST_DATA_DIR: Final[Path] = (
@@ -27,7 +26,7 @@ def test_sph_to_cart() -> None:
 
 
 @pytest.mark.parametrize(
-    "points_xyz, voxel_grid",
+    "points_xyz, grid",
     [
         pytest.param(
             torch.as_tensor([[5, 5, 5], [10, 10, 10]]),
@@ -51,7 +50,7 @@ def test_sph_to_cart() -> None:
                 ).to_numpy(),
                 dtype=torch.float,
             ),
-            VoxelGrid(
+            RegularGrid(
                 min_range_m=(-100.0, -100.0, -5.0),
                 max_range_m=(+100.0, +100.0, +5.0),
                 resolution_m_per_cell=(+0.1, +0.1, +0.2),
@@ -59,9 +58,9 @@ def test_sph_to_cart() -> None:
         ),
     ],
 )
-def test_sweep_to_bev(points_xyz: Tensor, voxel_grid: VoxelGrid) -> None:
+def test_sweep_to_bev(points_xyz: Tensor, grid: RegularGrid) -> None:
     """Unit test for converting a Cartesian sweep to a BEV image."""
-    bev = sweep_to_bev(points_xyz=points_xyz, dims=voxel_grid.dims)
+    bev = grid.sweep_to_bev(points_xyz)
     bev = bev * 255.0
 
     with NamedTemporaryFile("w") as f:

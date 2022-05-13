@@ -10,14 +10,11 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from torch import Tensor
 from torchvision.utils import make_grid
 
-from torchbox3d.math.conversions import (
-    denormalize_pixel_intensities,
-    sweep_to_bev,
-)
+from torchbox3d.math.conversions import denormalize_pixel_intensities
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import RegularGridData
-from torchbox3d.structures.ndgrid import VoxelGrid
 from torchbox3d.structures.outputs import NetworkOutputs
+from torchbox3d.structures.regular_grid import VoxelGrid
 
 
 @rank_zero_only
@@ -46,7 +43,7 @@ def to_tensorboard(
     counts_list: List[int] = counts.tolist()
     voxel_list = gts.voxels.C[..., :3].split(counts_list)
 
-    bev = sweep_to_bev(voxel_list[0], gts.grid.dims)[0]
+    bev = gts.grid.sweep_to_bev(voxel_list[0])[0]
     bev = bev.repeat(3, 1, 1)
     bev = denormalize_pixel_intensities(bev)
     _draw_cuboids(gts.cuboids, bev, gts.grid, (0, 0, 255))

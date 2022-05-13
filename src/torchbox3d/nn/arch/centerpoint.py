@@ -30,8 +30,8 @@ from torchbox3d.nn.meta.arch import Detector
 from torchbox3d.rendering.tensorboard import to_tensorboard
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData
-from torchbox3d.structures.ndgrid import VoxelGrid
 from torchbox3d.structures.outputs import NetworkOutputs, TaskOutputs
+from torchbox3d.structures.regular_grid import VoxelGrid
 from torchbox3d.structures.targets import CenterPointLoss
 
 logger = logging.getLogger(__name__)

@@ -22,7 +22,17 @@ def crop_points(
     Returns:
         (N,) Valid point mask.
     """
+    D = min(
+        points.shape[-1],
+        len(lower_bound_inclusive),
+        len(upper_bound_exclusive),
+    )
+    lower_bound_inclusive = lower_bound_inclusive[:D]
+    upper_bound_exclusive = upper_bound_exclusive[:D]
+
     lower = torch.as_tensor(lower_bound_inclusive, device=points.device)
     upper = torch.as_tensor(upper_bound_exclusive, device=points.device)
-    mask = torch.logical_and(points >= lower, points < upper).all(dim=1)
+    mask = torch.logical_and(
+        points[..., :D] >= lower, points[..., :D] < upper
+    ).all(dim=1)
     return points[mask], mask

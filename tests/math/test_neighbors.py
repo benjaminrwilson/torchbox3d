@@ -1,4 +1,4 @@
-"""Unit tests for the neighbors package."""
+"""Unit tests for the neighbors subpackage."""
 
 from typing import Any, Callable
 
@@ -11,7 +11,7 @@ from torchbox3d.math.ops.voxelize import (
     VoxelizationType,
     voxelize_concatenate_kernel,
 )
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.regular_grid import BEVGrid, VoxelGrid
 
 
 @pytest.mark.parametrize(
@@ -120,14 +120,16 @@ def test_voxelize(
 
 
 @pytest.mark.parametrize(
-    "voxel_grid, points_xyz, indices_, values_, counts_",
+    "voxel_grid, points_m, indices_, values_, counts_",
     [
         pytest.param(
+            # voxel_grid
             VoxelGrid(
                 min_range_m=(-5.0, -5.0, -5.0),
                 max_range_m=(+5.0, +5.0, +5.0),
                 resolution_m_per_cell=(+0.1, +0.1, +0.2),
             ),
+            # points_m
             torch.as_tensor(
                 [
                     [1.55, 0.0, 0.0],
@@ -138,57 +140,142 @@ def test_voxelize(
                     [2.1, 2.1, 2.0],
                 ]
             ),
+            # indices_
             torch.as_tensor(
                 [
                     [
-                        50,
+                        50 + 16,
                         50,
                         25,
-                    ],  # (0.00, 0.00, 0.00) / (0.1, 0.1, 0.2) + (50, 50, 25)
-                    [
-                        51,
-                        51,
-                        25,
-                    ],  # (0.05, 0.05, 0.05) / (0.1, 0.1, 0.2) + (50, 50, 25)
+                    ],
                     [
                         50,
-                        60,
-                        25,
-                    ],  # (0.00, 1.00, 0.00) / (0.1, 0.1, 0.2) + (50, 50, 25)
-                    [
                         50,
-                        61,
                         25,
-                    ],  # (0.00, 1.08, 0.00) / (0.1, 0.1, 0.2) + (50, 50, 25)
+                    ],
+                    [
+                        55,
+                        55,
+                        28,
+                    ],
+                    [
+                        56,
+                        56,
+                        28,
+                    ],
+                    [
+                        65,
+                        50,
+                        25,
+                    ],
+                    [
+                        71,
+                        71,
+                        35,
+                    ],
                 ],
                 dtype=torch.int32,
-            ),  # 50 + 101 - 50
+            ),
+            # values_
             torch.as_tensor(
                 [
-                    [0.0, 0.0, 0.0],
-                    [0.05, 0.05, 0.05],
-                    [0.0, 1.0, 0.0],
-                    [0.0, 1.08, 0.0],
+                    [[1.5500, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.0000, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.5000, 0.5000, 0.5000], [0.0000, 0.0000, 0.0000]],
+                    [[0.5500, 0.5500, 0.5500], [0.0000, 0.0000, 0.0000]],
+                    [[1.5000, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[2.1000, 2.1000, 2.0000], [0.0000, 0.0000, 0.0000]],
                 ]
             ),
-            torch.as_tensor([1, 1, 1, 1]),
+            # counts_
+            torch.as_tensor([1, 1, 1, 1, 1, 1]),
+        ),
+        # Test 2 parameters.
+        pytest.param(
+            BEVGrid(
+                min_range_m=(-5.0, -5.0),
+                max_range_m=(+5.0, +5.0),
+                resolution_m_per_cell=(+0.1, +0.1),
+            ),
+            # points_m
+            torch.as_tensor(
+                [
+                    [1.55, 0.0, 0.0],
+                    [0, 0, 0],
+                    [0.5, 0.5, 0.5],
+                    [0.55, 0.55, 0.55],
+                    [1.5, 0.0, 0.0],
+                    [2.1, 2.1, 2.0],
+                ]
+            ),
+            # indices_
+            # indices_
+            torch.as_tensor(
+                [
+                    [
+                        50 + 16,
+                        50,
+                    ],
+                    [
+                        50,
+                        50,
+                    ],
+                    [
+                        55,
+                        55,
+                    ],
+                    [
+                        56,
+                        56,
+                    ],
+                    [
+                        65,
+                        50,
+                    ],
+                    [
+                        71,
+                        71,
+                    ],
+                ],
+                dtype=torch.int32,
+            ),
+            # values_
+            torch.as_tensor(
+                [
+                    [[1.5500, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.0000, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.5000, 0.5000, 0.5000], [0.0000, 0.0000, 0.0000]],
+                    [[0.5500, 0.5500, 0.5500], [0.0000, 0.0000, 0.0000]],
+                    [[1.5000, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[2.1000, 2.1000, 2.0000], [0.0000, 0.0000, 0.0000]],
+                ]
+            ),
+            # counts_
+            torch.as_tensor([1, 1, 1, 1, 1, 1]),
         ),
     ],
-    ids=["test0"],
+    ids=[
+        "Test clustering points into voxels.",
+        "Test clustering points into pillars.",
+    ],
 )
 def test_voxelize_concatenate_kernel(
     voxel_grid: VoxelGrid,
-    points_xyz: Tensor,
+    points_m: Tensor,
     indices_: Tensor,
     values_: Tensor,
     counts_: Tensor,
 ) -> None:
     """Test voxelization with truncated reduction."""
-    voxels, values, _, _ = voxelize_concatenate_kernel(
-        points_xyz,
-        points_xyz,
+    indices, values, counts, _ = voxelize_concatenate_kernel(
+        points_m,
+        points_m,
         voxel_grid,
+        max_num_pts=2,
     )
+    torch.testing.assert_allclose(indices, indices_)
+    torch.testing.assert_allclose(values, values_)
+    torch.testing.assert_allclose(counts, counts_)
 
 
 @pytest.mark.parametrize(

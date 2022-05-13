@@ -7,6 +7,7 @@ from functools import cached_property
 from typing import List, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
 
 from torchbox3d.math.crop import crop_points
@@ -14,7 +15,7 @@ from torchbox3d.rendering.ops.shaders import align_corners
 
 
 @dataclass
-class NDGrid:
+class RegularGrid:
     """Models an N-dimensional grid.
 
     Args:
@@ -27,22 +28,39 @@ class NDGrid:
     max_range_m: Tuple[float, ...]
     resolution_m_per_cell: Tuple[float, ...]
 
+    def __post_init__(self) -> None:
+        """Validate the NDGrid sizes."""
+        D_min = len(self.min_dim)
+        D_max = len(self.max_range_m)
+        D_res = len(self.resolution_m_per_cell)
+
+        if D_min != D_max and D_max != D_res:
+            raise ValueError(
+                "`min_range_m`, `max_range_m` and `resolution_m_per_cell` "
+                "must have the same dimension!"
+            )
+
+    @cached_property
+    def N(self) -> int:
+        """Return the dimension of the grid."""
+        return len(self.min_range_m)
+
     @cached_property
     def dims(self) -> Tuple[int, ...]:
         """Size of the grid _after_ bucketing."""
         range_m: Tensor = torch.as_tensor(self.range_m)
-        dims: List[int] = self.scale_and_quantize_points(range_m).tolist()
+        dims: List[int] = (self.scale_and_quantize_points(range_m)).tolist()
         return tuple(dims)
 
     @cached_property
-    def min_dim_m(self) -> Tuple[int, ...]:
+    def min_dim(self) -> Tuple[int, ...]:
         """Size of the grid _after_ bucketing."""
         min_range_m: Tensor = torch.as_tensor(self.min_range_m)
         dims: List[int] = self.scale_and_quantize_points(min_range_m).tolist()
         return tuple(dims)
 
     @cached_property
-    def max_dim_m(self) -> Tuple[int, ...]:
+    def max_dim(self) -> Tuple[int, ...]:
         """Size of the grid _after_ bucketing."""
         max_range_m: Tensor = torch.as_tensor(self.max_range_m)
         dims: List[int] = self.scale_and_quantize_points(max_range_m).tolist()
@@ -65,23 +83,23 @@ class NDGrid:
         Returns:
             (N,D) list of scaled points.
         """
-        D = points.shape[-1]
+        N = min(self.N, points.shape[-1])
         resolution_m_per_cell = torch.as_tensor(
             self.resolution_m_per_cell,
             device=points.device,
-            dtype=points.dtype,
+            dtype=torch.float,
         )
-        scaled_points: Tensor = points / resolution_m_per_cell[:D]
+        scaled_points: Tensor = points[..., :N] / resolution_m_per_cell[:N]
         return scaled_points
 
     def quantize_points(self, points: Tensor) -> Tensor:
         """Quantize the points to integer coordinates.
 
         Args:
-            points: (N,D) list of points.
+            points: (N,D) List of points.
 
         Returns:
-            (N,D) list of quantized points.
+            (N,D) List of quantized points.
         """
         # Add half-bucket offset.
         centered_points: Tensor = align_corners(points)
@@ -112,44 +130,87 @@ class NDGrid:
         Returns:
             (N,D) list of quantized grid coordinates.
         """
-        D = points_m.shape[-1]
-        min_range_m = torch.as_tensor(
-            self.min_range_m, device=points_m.device, dtype=points_m.dtype
-        )
-        offset_m = min_range_m.abs()
+        D = min(points_m.shape[-1], len(self.min_range_m))
+        offset_m = torch.zeros_like(points_m[0])
+        offset_m[:D] = torch.as_tensor(self.min_range_m[:D]).abs()
+
         quantized_points_grid = self.scale_and_quantize_points(
-            points_m + offset_m[:D]
+            points_m + offset_m
         )
 
-        upper = list(self.dims)
-        _, mask = crop_points(
-            quantized_points_grid, [0.0, 0.0, 0.0][:D], upper[:D]
-        )
+        upper = [float(x) for x in self.dims]
+        _, mask = crop_points(quantized_points_grid, [0.0, 0.0, 0.0], upper)
         return quantized_points_grid, mask
+
+    def downsample(self, stride: int) -> Tuple[int, int, int]:
+        """Downsample the grid coordinates."""
+        downsampled_dims = [int(d / stride) for d in self.dims]
+        return tuple(downsampled_dims)
+
+    @cached_property
+    def grid_offset_m(self) -> Tuple[float, float, float]:
+        """Return the grid offset from the lower bound to the grid origin."""
+        min_range_m = [abs(x) for x in self.min_range_m]
+        return tuple(min_range_m)
+
+    def sweep_to_bev(
+        self,
+        points_m: Tensor,
+    ) -> Tensor:
+        """Construct an image from a point cloud.
+
+        Args:
+            points_m: (N,3) Tensor of Cartesian points.
+            dims: Voxel grid dimensions.
+
+        Returns:
+            (B,C,H,W) Bird's-eye view image.
+        """
+        indices, mask = self.transform_to_grid_coordinates(points_m)
+        indices = indices[mask]
+        # Return an empty image if no indices are available after cropping.
+        if len(indices) == 0:
+            dims = [1, 1] + list(self.dims[:2])
+            return torch.zeros(
+                dims,
+                device=points_m.device,
+                dtype=points_m.dtype,
+            )
+
+        if indices.shape[-1] == 3:
+            indices = F.pad(indices, [0, 1], "constant", 0.0)
+
+        values = torch.ones_like(indices[..., 0], dtype=torch.float)
+        sparse_dims: List[int] = list(self.dims)
+
+        dense_dims = []
+        if indices.shape[-1] > 2:
+            dense_dims = [int(indices[:, -1].max().item()) + 1]
+        size = sparse_dims + dense_dims
+
+        voxels: Tensor = torch.sparse_coo_tensor(
+            indices=indices.T, values=values, size=size
+        )
+        if len(sparse_dims) > 2:
+            voxels = torch.sparse.sum(voxels, dim=(-2,))
+        bev = voxels.to_dense()
+        if bev.ndim == 2:
+            bev = bev.unsqueeze(-1)
+        bev = bev.permute(2, 0, 1)[:, None]
+        return bev
 
 
 @dataclass
-class VoxelGrid(NDGrid):
+class VoxelGrid(RegularGrid):
     """Representation of a voxel grid."""
 
     min_range_m: Tuple[float, float, float]
     max_range_m: Tuple[float, float, float]
     resolution_m_per_cell: Tuple[float, float, float]
 
-    @cached_property
-    def grid_offset_m(self) -> Tuple[float, float, float]:
-        """Return the grid offset from the lower bound to the grid origin."""
-        min_x, min_y, min_z = self.min_range_m
-        return (abs(min_x), abs(min_y), abs(min_z))
-
-    def downsample(self, stride: int) -> Tuple[int, int, int]:
-        """Downsample the grid coordinates."""
-        vx, vy, vz = self.dims
-        return (int(vx / stride), int(vy / stride), int(vz / stride))
-
 
 @dataclass
-class BEVGrid(NDGrid):
+class BEVGrid(RegularGrid):
     """Representation of a bird's-eye view grid."""
 
     min_range_m: Tuple[float, float]

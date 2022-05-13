@@ -10,13 +10,13 @@ from torchbox3d.math.ops.voxelize import (
     voxelize_concatenate_kernel,
     voxelize_pool_kernel,
 )
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 
 
 def voxelize(
     points_xyz: Tensor,
     values: Tensor,
-    voxel_grid: VoxelGrid,
+    voxel_grid: RegularGrid,
     voxelization_type: VoxelizationType = VoxelizationType.POOL,
     voxelization_pooling_type: Optional[
         VoxelizationPoolingType

@@ -9,7 +9,7 @@ import torch
 from torchbox3d.math.neighbors import voxelize
 from torchbox3d.math.ops.voxelize import VoxelizationType
 from torchbox3d.structures.data import Data, RegularGridData
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.regular_grid import BEVGrid, VoxelGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
 
 
@@ -53,6 +53,51 @@ class Voxelize:
 
         indices, values, _, _ = voxelize(
             x.pos, x.x, self.voxel_grid, self.voxelization_type
+        )
+        x.voxels = SparseTensor(feats=values, coords=indices)
+        return x
+
+
+@dataclass
+class Pillarize:
+    """Construct a voxelization transformation.
+
+    Args:
+        min_range_m: (2,) Minimum range along the x,y axes in meters.
+        max_range_m: (2,) Maximum range along the x,y axes in meters.
+        resolution_m_per_cell: (2,) Ratio of meters to cell in meters.
+        voxelization_type: Voxelization type used in the transformation
+            (e.g., pooling).
+    """
+
+    min_range_m: Tuple[float, float]
+    max_range_m: Tuple[float, float]
+    resolution_m_per_cell: Tuple[float, float]
+    voxelization_type: VoxelizationType
+
+    @cached_property
+    def bev_grid(self) -> BEVGrid:
+        """Return the voxel grid associated with the transformation."""
+        return BEVGrid(
+            min_range_m=self.min_range_m,
+            max_range_m=self.max_range_m,
+            resolution_m_per_cell=self.resolution_m_per_cell,
+        )
+
+    def __call__(self, x: RegularGridData) -> Data:
+        """Voxelize the points in the data object.
+
+        Args:
+            x: Data object containing the points.
+
+        Returns:
+            The data with voxelized points.
+        """
+        x.grid = self.bev_grid
+        x.x = torch.cat((x.pos, x.x), dim=-1)
+
+        indices, values, _, _ = voxelize(
+            x.pos, x.x, self.bev_grid, self.voxelization_type
         )
         x.voxels = SparseTensor(feats=values, coords=indices)
         return x
