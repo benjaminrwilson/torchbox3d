@@ -31,7 +31,7 @@ from torchbox3d.rendering.tensorboard import to_tensorboard
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData
 from torchbox3d.structures.outputs import NetworkOutputs, TaskOutputs
-from torchbox3d.structures.regular_grid import VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 from torchbox3d.structures.targets import CenterPointLoss
 
 logger = logging.getLogger(__name__)
@@ -167,7 +167,7 @@ class CenterPoint(Detector):
     def predict_step(  # type: ignore[override]
         self,
         outputs_list: List[TaskOutputs],
-        voxel_grid: VoxelGrid,
+        voxel_grid: RegularGrid,
         batch_idx: int,
         dataloader_idx: Optional[int] = None,
     ) -> Cuboids:

@@ -142,13 +142,13 @@ class RegularGrid:
         _, mask = crop_points(quantized_points_grid, [0.0, 0.0, 0.0], upper)
         return quantized_points_grid, mask
 
-    def downsample(self, stride: int) -> Tuple[int, int, int]:
+    def downsample(self, stride: int) -> Tuple[int, ...]:
         """Downsample the grid coordinates."""
         downsampled_dims = [int(d / stride) for d in self.dims]
         return tuple(downsampled_dims)
 
     @cached_property
-    def grid_offset_m(self) -> Tuple[float, float, float]:
+    def grid_offset_m(self) -> Tuple[float, ...]:
         """Return the grid offset from the lower bound to the grid origin."""
         min_range_m = [abs(x) for x in self.min_range_m]
         return tuple(min_range_m)

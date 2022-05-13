@@ -15,7 +15,7 @@ from torch import Tensor
 from torchbox3d.math.linalg.lie.SO3 import quat_to_mat
 from torchbox3d.rendering.ops.shaders import polygon
 from torchbox3d.structures.meta import TensorStruct
-from torchbox3d.structures.regular_grid import VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 
 
 @dataclass
@@ -150,7 +150,7 @@ class Cuboids(TensorStruct):
 
     def draw_on_bev(
         self,
-        voxel_grid: VoxelGrid,
+        voxel_grid: RegularGrid,
         bev: Tensor,
         color: Tuple[int, int, int] = (0, 255, 0),
     ) -> Tensor:

@@ -11,7 +11,7 @@ from torchbox3d.math.linalg.lie.SO3 import quat_to_yaw, yaw_to_quat
 from torchbox3d.math.ops.index import mgrid
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.outputs import TaskOutputs
-from torchbox3d.structures.regular_grid import VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 
 T = TypeVar("T")
 
@@ -66,7 +66,7 @@ def encode(cuboids: Tensor) -> Tensor:
 
 def decode(
     task_outputs_list: List[TaskOutputs],
-    voxel_grid: VoxelGrid,
+    voxel_grid: RegularGrid,
     network_stride: int,
     max_k: int,
     to_nonconsecutive: Tensor,

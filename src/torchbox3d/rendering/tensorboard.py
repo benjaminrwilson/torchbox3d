@@ -14,7 +14,7 @@ from torchbox3d.math.conversions import denormalize_pixel_intensities
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import RegularGridData
 from torchbox3d.structures.outputs import NetworkOutputs
-from torchbox3d.structures.regular_grid import VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 
 
 @rank_zero_only
@@ -78,7 +78,7 @@ def to_tensorboard(
 def _draw_cuboids(
     cuboids: Cuboids,
     bev: Tensor,
-    grid: VoxelGrid,
+    grid: RegularGrid,
     color: Tuple[int, int, int],
     k: Optional[int] = None,
 ) -> Tensor:
