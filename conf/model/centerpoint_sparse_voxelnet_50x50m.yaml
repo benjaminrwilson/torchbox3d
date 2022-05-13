@@ -40,7 +40,7 @@ arch_cfg:
 
   train_transforms_cfg:
     cluster:
-      _target_: torchbox3d.math.transforms.cluster.cluster
+      _target_: torchbox3d.math.transforms.cluster
 
       resolution_m_per_cell: ${model.arch_cfg.backbone_cfg.resolution_m_per_cell}
       min_range_m: ${model.arch_cfg.backbone_cfg.min_range_m}
