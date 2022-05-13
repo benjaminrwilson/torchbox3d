@@ -1,4 +1,8 @@
-"""Pointpillars implementation."""
+"""Pointpillars implementation.
+
+NOTE: This implementation is NOT complete and only serves a simplified
+model for development currently.
+"""
 
 from dataclasses import dataclass
 from pathlib import Path
