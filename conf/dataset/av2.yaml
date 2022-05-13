@@ -61,15 +61,15 @@ tasks_cfg:
   # "ANIMAL" (Zero instances in val)
 
 train_transforms_cfg:  # Validation transforms.
-  voxelize: ${model.arch_cfg.train_transforms_cfg.voxelize}
+  cluster: ${model.arch_cfg.train_transforms_cfg.cluster}
   splatter_heatmap: ${model.arch_cfg.train_transforms_cfg.splatter_heatmap}
 
 # Validation transforms.
 val_transforms_cfg:
-  voxelize: ${dataset.train_transforms_cfg.voxelize}
+  cluster: ${dataset.train_transforms_cfg.cluster}
   splatter_heatmap: ${dataset.train_transforms_cfg.splatter_heatmap}
 
  # Test transforms.
 test_transforms_cfg:
-  voxelize: ${dataset.train_transforms_cfg.voxelize}
+  cluster: ${dataset.train_transforms_cfg.cluster}
   splatter_heatmap: ${dataset.train_transforms_cfg.splatter_heatmap}
