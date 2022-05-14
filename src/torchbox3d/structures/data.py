@@ -9,9 +9,9 @@ from torch import Tensor
 
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.meta import TensorStruct
-from torchbox3d.structures.regular_grid import RegularGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
 from torchbox3d.structures.targets import GridTargets
+from torchbox3d.structuresgrid import RegularGrid
 
 
 @dataclass

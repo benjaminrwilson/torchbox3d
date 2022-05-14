@@ -1,6 +1,6 @@
 """Methods to help visualize data during training."""
 
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 from pytorch_lightning import Trainer
@@ -14,7 +14,7 @@ from torchbox3d.math.conversions import denormalize_pixel_intensities
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import RegularGridData
 from torchbox3d.structures.outputs import NetworkOutputs
-from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
+from torchbox3d.structuresgrid import RegularGrid
 
 
 @rank_zero_only

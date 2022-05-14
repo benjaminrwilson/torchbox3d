@@ -6,11 +6,10 @@ from typing import Tuple
 
 import torch
 
-from torchbox3d.math.crop import crop_points
 from torchbox3d.math.ops.cluster import ClusterType
 from torchbox3d.structures.data import Data, RegularGridData
-from torchbox3d.structures.regular_grid import BEVGrid, VoxelGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
+from torchbox3d.structuresgrid import BEVGrid, VoxelGrid
 
 
 @dataclass

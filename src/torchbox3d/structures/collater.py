@@ -9,9 +9,9 @@ from torchsparse.utils.collate import sparse_collate
 
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData
-from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
 from torchbox3d.structures.targets import GridTargets
+from torchbox3d.structuresgrid import RegularGrid
 
 
 def collate(data_list: Sequence[Data]) -> Data:

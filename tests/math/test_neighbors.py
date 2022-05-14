@@ -11,7 +11,7 @@ from torchbox3d.math.ops.cluster import (
     VoxelizationType,
     voxelize_concatenate_kernel,
 )
-from torchbox3d.structures.regular_grid import BEVGrid, VoxelGrid
+from torchbox3d.structuresgrid import BEVGrid, VoxelGrid
 
 
 @pytest.mark.parametrize(

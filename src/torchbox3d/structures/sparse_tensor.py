@@ -7,7 +7,7 @@ from typing import Any, ItemsView, Tuple, Union
 
 import torch
 import torchsparse
-from torch import Size, Tensor, as_tensor, sparse_coo_tensor
+from torch import Size, Tensor, as_tensor
 
 from torchbox3d.math.ops.index import scatter_nd
 

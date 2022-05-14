@@ -31,8 +31,8 @@ from torchbox3d.rendering.tensorboard import to_tensorboard
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData
 from torchbox3d.structures.outputs import NetworkOutputs, TaskOutputs
-from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
 from torchbox3d.structures.targets import CenterPointLoss
+from torchbox3d.structuresgrid import RegularGrid
 
 logger = logging.getLogger(__name__)
 

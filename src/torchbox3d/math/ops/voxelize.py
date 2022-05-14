@@ -9,7 +9,7 @@ from torch import Tensor
 
 from torchbox3d.math.crop import crop_points
 from torchbox3d.math.ops.index import ravel_multi_index, unravel_index
-from torchbox3d.structures.regular_grid import RegularGrid
+from torchbox3d.structuresgrid import RegularGrid
 
 
 @unique

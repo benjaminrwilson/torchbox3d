@@ -2,11 +2,7 @@
 
 
 import torch
-import torch.functional as F
 from torch import Tensor
-
-from torchbox3d.math.ops.cluster import ClusterType
-from torchbox3d.structures.regular_grid import RegularGrid
 
 
 @torch.jit.script
