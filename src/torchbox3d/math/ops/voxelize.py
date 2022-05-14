@@ -9,16 +9,16 @@ from torch import Tensor
 
 from torchbox3d.math.crop import crop_points
 from torchbox3d.math.ops.index import ravel_multi_index, unravel_index
-from torchbox3d.math.ops.pool import voxel_pool
+from torchbox3d.math.ops.pool import mean_pool
 from torchbox3d.structures.regular_grid import RegularGrid
 
 
 @unique
-class VoxelizationType(str, Enum):
+class Reduction(str, Enum):
     """The type of reduction performed during voxelization."""
 
     CONCATENATE = "CONCATENATE"
-    POOL = "POOL"
+    MEAN_POOL = "MEAN_POOL"
 
 
 @unique
@@ -57,7 +57,7 @@ def voxelize_pool_kernel(
 
     counts = torch.ones_like(indices[:, 0])
     if pool_mode is not None and pool_mode == VoxelizationPoolingType.MEAN:
-        indices, values, counts = voxel_pool(
+        indices, values, counts = mean_pool(
             indices, values, list(voxel_grid.grid_size)
         )
     return indices.int(), values, counts, mask

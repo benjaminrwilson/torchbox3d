@@ -10,7 +10,7 @@ from torchbox3d.math.ops.index import ravel_multi_index, unravel_index
 
 
 @torch.jit.script
-def voxel_pool(
+def mean_pool(
     indices: Tensor, values: Tensor, size: List[int]
 ) -> Tuple[Tensor, Tensor, Tensor]:
     """Apply a pooling operation on a voxel grid.

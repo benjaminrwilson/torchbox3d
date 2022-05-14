@@ -6,8 +6,8 @@ from typing import Tuple
 
 import torch
 
-from torchbox3d.math.neighbors import voxelize
-from torchbox3d.math.ops.voxelize import VoxelizationType
+from torchbox3d.math.neighbors import grid_cluster
+from torchbox3d.math.ops.voxelize import Reduction
 from torchbox3d.structures.data import Data, RegularGridData
 from torchbox3d.structures.regular_grid import BEVGrid, VoxelGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
@@ -28,7 +28,7 @@ class Voxelize:
     min_world_coordinates_m: Tuple[float, float, float]
     max_world_coordinates_m: Tuple[float, float, float]
     delta_m_per_cell: Tuple[float, float, float]
-    voxelization_type: VoxelizationType
+    voxelization_type: Reduction
 
     @cached_property
     def voxel_grid(self) -> VoxelGrid:
@@ -51,7 +51,7 @@ class Voxelize:
         x.grid = self.voxel_grid
         x.x = torch.cat((x.pos, x.x), dim=-1)
 
-        indices, values, _, _ = voxelize(
+        indices, values, _, _ = grid_cluster(
             x.pos, x.x, self.voxel_grid, self.voxelization_type
         )
         x.voxels = SparseTensor(feats=values, coords=indices)
@@ -73,7 +73,7 @@ class Pillarize:
     min_world_coordinates_m: Tuple[float, float]
     max_world_coordinates_m: Tuple[float, float]
     delta_m_per_cell: Tuple[float, float]
-    voxelization_type: VoxelizationType
+    voxelization_type: Reduction
 
     @cached_property
     def bev_grid(self) -> BEVGrid:
@@ -96,7 +96,7 @@ class Pillarize:
         x.grid = self.bev_grid
         x.x = torch.cat((x.pos, x.x), dim=-1)
 
-        indices, values, _, _ = voxelize(
+        indices, values, _, _ = grid_cluster(
             x.pos, x.x, self.bev_grid, self.voxelization_type
         )
         x.voxels = SparseTensor(feats=values, coords=indices)

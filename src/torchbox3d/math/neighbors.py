@@ -1,35 +1,30 @@
 """Nearest neighbor methods."""
 
-from typing import Optional, Tuple
+from typing import Tuple
 
 from torch import Tensor
 
 from torchbox3d.math.ops.voxelize import (
-    VoxelizationPoolingType,
-    VoxelizationType,
+    Reduction,
     voxelize_concatenate_kernel,
     voxelize_pool_kernel,
 )
-from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid
 
 
-def voxelize(
-    points_xyz: Tensor,
+def grid_cluster(
+    indices: Tensor,
     values: Tensor,
-    voxel_grid: RegularGrid,
-    voxelization_type: VoxelizationType = VoxelizationType.POOL,
-    voxelization_pooling_type: Optional[
-        VoxelizationPoolingType
-    ] = VoxelizationPoolingType.MEAN,
+    grid: RegularGrid,
+    reduction: Reduction = Reduction.MEAN_POOL,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """Cluster a point cloud into a grid of voxels.
 
     Args:
-        points_xyz: (N,3) Coordinates (x,y,z).
+        indices: (N,3) Spatial indices.
         values: (N,F) Features associated with the points.
-        voxel_grid: Voxel grid metadata.
-        voxelization_type: The voxelization mode (e.g., "pool").
-        voxelization_pooling_type: Pooling method for collisions.
+        grid: Voxel grid metadata.
+        reduction: The reduction applied after clustering.
 
     Returns:
         The voxel indices, values, counts, and cropping mask.
@@ -37,16 +32,15 @@ def voxelize(
     Raises:
         NotImplementedError: If the voxelization mode is not implemented.
     """
-    if voxelization_type.upper() == VoxelizationType.POOL:
+    if reduction.upper() == Reduction.MEAN_POOL:
         return voxelize_pool_kernel(
-            points_xyz,
+            indices,
             values,
-            voxel_grid,
-            voxelization_pooling_type,
+            grid,
         )
-    elif voxelization_type.upper() == VoxelizationType.CONCATENATE:
-        return voxelize_concatenate_kernel(points_xyz, values, voxel_grid)
+    elif reduction.upper() == Reduction.CONCATENATE:
+        return voxelize_concatenate_kernel(indices, values, grid)
     else:
         raise NotImplementedError(
-            f"The voxelization type {voxelization_type} is not implemented!"
+            f"The reduction, {reduction}, is not implemented!"
         )

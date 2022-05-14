@@ -5,8 +5,8 @@ import torch
 import torch.functional as F
 from torch import Tensor
 
-from torchbox3d.math.neighbors import voxelize
-from torchbox3d.math.ops.voxelize import VoxelizationType
+from torchbox3d.math.neighbors import grid_cluster
+from torchbox3d.math.ops.voxelize import Reduction
 from torchbox3d.structures.regular_grid import RegularGrid
 
 
@@ -89,12 +89,12 @@ def sweep_to_bev(
     Returns:
         (B,C,H,W) Bird's-eye view image.
     """
-    voxelization_type = VoxelizationType.POOL
+    voxelization_type = Reduction.MEAN_POOL
     if points_m.ndim == 3:
-        voxelization_type = VoxelizationType.CONCATENATE
+        voxelization_type = Reduction.CONCATENATE
     breakpoint()
-    indices, _, _, _ = voxelize(
-        points_m, points_m, grid, voxelization_type=voxelization_type
+    indices, _, _, _ = grid_cluster(
+        points_m, points_m, grid, reduction=voxelization_type
     )
     # Return an empty image if no indices are available after cropping.
     if len(indices) == 0:
