@@ -18,25 +18,25 @@ class Voxelize:
     """Construct a voxelization transformation.
 
     Args:
-        min_range_m: (3,) Minimum range along the x,y,z axes in meters.
-        max_range_m: (3,) Maximum range along the x,y,z axes in meters.
-        resolution_m_per_cell: (3,) Ratio of meters to cell in meters.
+        min_world_coordinates_m: (3,) Minimum range along the x,y,z axes in meters.
+        max_world_coordinates_m: (3,) Maximum range along the x,y,z axes in meters.
+        delta_m_per_cell: (3,) Ratio of meters to cell in meters.
         voxelization_type: Voxelization type used in the transformation
             (e.g., pooling).
     """
 
-    min_range_m: Tuple[float, float, float]
-    max_range_m: Tuple[float, float, float]
-    resolution_m_per_cell: Tuple[float, float, float]
+    min_world_coordinates_m: Tuple[float, float, float]
+    max_world_coordinates_m: Tuple[float, float, float]
+    delta_m_per_cell: Tuple[float, float, float]
     voxelization_type: VoxelizationType
 
     @cached_property
     def voxel_grid(self) -> VoxelGrid:
         """Return the voxel grid associated with the transformation."""
         return VoxelGrid(
-            min_range_m=self.min_range_m,
-            max_range_m=self.max_range_m,
-            resolution_m_per_cell=self.resolution_m_per_cell,
+            min_world_coordinates_m=self.min_world_coordinates_m,
+            max_world_coordinates_m=self.max_world_coordinates_m,
+            delta_m_per_cell=self.delta_m_per_cell,
         )
 
     def __call__(self, x: RegularGridData) -> Data:
@@ -63,25 +63,25 @@ class Pillarize:
     """Construct a voxelization transformation.
 
     Args:
-        min_range_m: (2,) Minimum range along the x,y axes in meters.
-        max_range_m: (2,) Maximum range along the x,y axes in meters.
-        resolution_m_per_cell: (2,) Ratio of meters to cell in meters.
+        min_world_coordinates_m: (2,) Minimum range along the x,y axes in meters.
+        max_world_coordinates_m: (2,) Maximum range along the x,y axes in meters.
+        delta_m_per_cell: (2,) Ratio of meters to cell in meters.
         voxelization_type: Voxelization type used in the transformation
             (e.g., pooling).
     """
 
-    min_range_m: Tuple[float, float]
-    max_range_m: Tuple[float, float]
-    resolution_m_per_cell: Tuple[float, float]
+    min_world_coordinates_m: Tuple[float, float]
+    max_world_coordinates_m: Tuple[float, float]
+    delta_m_per_cell: Tuple[float, float]
     voxelization_type: VoxelizationType
 
     @cached_property
     def bev_grid(self) -> BEVGrid:
         """Return the voxel grid associated with the transformation."""
         return BEVGrid(
-            min_range_m=self.min_range_m,
-            max_range_m=self.max_range_m,
-            resolution_m_per_cell=self.resolution_m_per_cell,
+            min_world_coordinates_m=self.min_world_coordinates_m,
+            max_world_coordinates_m=self.max_world_coordinates_m,
+            delta_m_per_cell=self.delta_m_per_cell,
         )
 
     def __call__(self, x: RegularGridData) -> Data:

@@ -31,9 +31,9 @@ def test_sph_to_cart() -> None:
         pytest.param(
             torch.as_tensor([[5, 5, 5], [10, 10, 10]]),
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
         ),
         pytest.param(
@@ -51,9 +51,9 @@ def test_sph_to_cart() -> None:
                 dtype=torch.float,
             ),
             RegularGrid(
-                min_range_m=(-100.0, -100.0, -5.0),
-                max_range_m=(+100.0, +100.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-100.0, -100.0, -5.0),
+                max_world_coordinates_m=(+100.0, +100.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
         ),
     ],

@@ -42,9 +42,9 @@ arch_cfg:
     cluster:
       _target_: torchbox3d.math.transforms.cluster.Voxelize
 
-      resolution_m_per_cell: ${model.arch_cfg.backbone_cfg.resolution_m_per_cell}
-      min_range_m: ${model.arch_cfg.backbone_cfg.min_range_m}
-      max_range_m: ${model.arch_cfg.backbone_cfg.max_range_m}
+      delta_m_per_cell: ${model.arch_cfg.backbone_cfg.delta_m_per_cell}
+      min_world_coordinates_m: ${model.arch_cfg.backbone_cfg.min_world_coordinates_m}
+      max_world_coordinates_m: ${model.arch_cfg.backbone_cfg.max_world_coordinates_m}
       voxelization_type: ${model.arch_cfg.backbone_cfg.voxelization_type}
 
     splatter_heatmap:
@@ -72,9 +72,9 @@ arch_cfg:
     _target_: torchbox3d.nn.backbones.sparse_voxelnet.SparseVoxelNet
     name: "sparse-voxelnet"
     dim_in: 4  # Number of input dimensions
-    resolution_m_per_cell: [0.1, 0.1, 0.2]
-    min_range_m: [-51.2, -51.2, -3.2]
-    max_range_m: [51.2, 51.2, 3.2]
+    delta_m_per_cell: [0.1, 0.1, 0.2]
+    min_world_coordinates_m: [-51.2, -51.2, -3.2]
+    max_world_coordinates_m: [51.2, 51.2, 3.2]
     voxelization_type: pool
 
   ##########################################################################

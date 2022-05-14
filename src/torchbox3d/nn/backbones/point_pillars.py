@@ -24,9 +24,9 @@ class PointPillars(LightningModule):
     """Implementation of Pointpillars."""
 
     dim_in: int
-    resolution_m_per_cell: Tuple[int, int, int]
-    min_range_m: Tuple[int, int]
-    max_range_m: Tuple[int, int]
+    delta_m_per_cell: Tuple[int, int, int]
+    min_world_coordinates_m: Tuple[int, int]
+    max_world_coordinates_m: Tuple[int, int]
     voxelization_type: str
     debug: bool = False
     name: str = "point_pillars"
@@ -95,7 +95,7 @@ class PointPillars(LightningModule):
         Returns:
             The BEV canvas with scatter pillar encodings.
         """
-        L, W = grid.dims[:2]
+        L, W = grid.grid_size[:2]
         B = int(indices[..., -1].max().item() + 1)
         D = int(x.shape[-1])
 

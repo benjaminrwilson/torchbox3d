@@ -182,7 +182,7 @@ class Cuboids(TensorStruct):
             (
                 vertices_uv,
                 mask,
-            ) = voxel_grid.transform_to_grid_coordinates(vertices_uv)
+            ) = voxel_grid.transform_from(vertices_uv)
 
             vertices_uv = vertices_uv.float()
             colors_uint8 = (colors * self.scores[i]).round().byte()

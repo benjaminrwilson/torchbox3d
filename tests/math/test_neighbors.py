@@ -19,9 +19,9 @@ from torchbox3d.structures.regular_grid import BEVGrid, VoxelGrid
     [
         pytest.param(
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
             torch.as_tensor(
                 [
@@ -68,9 +68,9 @@ from torchbox3d.structures.regular_grid import BEVGrid, VoxelGrid
         ),
         pytest.param(
             VoxelGrid(
-                min_range_m=(0.0, 0.0, 0.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+2.5, +2.5, +2.5),
+                min_world_coordinates_m=(0.0, 0.0, 0.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+2.5, +2.5, +2.5),
             ),
             torch.as_tensor(
                 [
@@ -125,9 +125,9 @@ def test_voxelize(
         pytest.param(
             # voxel_grid
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
             # points_m
             torch.as_tensor(
@@ -193,9 +193,9 @@ def test_voxelize(
         # Test 2 parameters.
         pytest.param(
             BEVGrid(
-                min_range_m=(-5.0, -5.0),
-                max_range_m=(+5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1),
+                min_world_coordinates_m=(-5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1),
             ),
             # points_m
             torch.as_tensor(
@@ -284,9 +284,9 @@ def test_voxelize_concatenate_kernel(
         pytest.param(
             torch.rand((100000, 3)),
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
         )
     ],
@@ -311,17 +311,17 @@ def test_benchmark_voxelize_concatenate(
         pytest.param(
             torch.rand((100000, 3)),
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
         ),
         pytest.param(
             torch.rand((500000, 3)),
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
         ),
     ],

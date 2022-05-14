@@ -14,9 +14,9 @@ from torchbox3d.structures.regular_grid import RegularGrid
     [
         pytest.param(
             RegularGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.1),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.1),
             ),
             torch.as_tensor([[1.11, 2.22, 3.33], [4.44, 5.55, 6.66]]),
             (100, 100, 100),
@@ -27,9 +27,9 @@ from torchbox3d.structures.regular_grid import RegularGrid
         ),
         pytest.param(
             RegularGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(pi / 10, pi / 10, pi / 10),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(pi / 10, pi / 10, pi / 10),
             ),
             torch.as_tensor([[10.0, 10.0, 10.0]]),
             (32, 32, 32),

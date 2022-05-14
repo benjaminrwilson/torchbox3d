@@ -116,8 +116,8 @@ def _decode_lwh(
     W = task_outputs.regressands.shape[-1]
     grid_idx = mgrid([[0, H], [0, W]])[None].float().to(device)
 
-    resolution_m_per_cell = torch.as_tensor(
-        voxel_grid.resolution_m_per_cell[:2],
+    delta_m_per_cell = torch.as_tensor(
+        voxel_grid.delta_m_per_cell[:2],
         dtype=task_outputs.logits.dtype,
         device=task_outputs.logits.device,
     )[None, :, None, None]
@@ -156,7 +156,7 @@ def _decode_lwh(
 
         # Transform coordinates to original coordinates.
         ctrs = offset + grid_idx
-        ctrs *= network_stride * resolution_m_per_cell
+        ctrs *= network_stride * delta_m_per_cell
 
         # Convert image coordinates to ego coordinates.
         ctrs -= grid_offset

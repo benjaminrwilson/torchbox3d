@@ -10,7 +10,7 @@ from torch import Tensor
 from torchbox3d.math.crop import crop_points
 from torchbox3d.math.ops.index import ravel_multi_index, unravel_index
 from torchbox3d.math.ops.pool import voxel_pool
-from torchbox3d.structures.regular_grid import RegularGrid, VoxelGrid
+from torchbox3d.structures.regular_grid import RegularGrid
 
 
 @unique
@@ -48,17 +48,17 @@ def voxelize_pool_kernel(
     """
     points_xyz, mask = crop_points(
         xyz,
-        list(voxel_grid.min_range_m),
-        list(voxel_grid.max_range_m),
+        list(voxel_grid.min_world_coordinates_m),
+        list(voxel_grid.max_world_coordinates_m),
     )
     values = values[mask]
-    indices, mask = voxel_grid.transform_to_grid_coordinates(points_xyz)
+    indices, mask = voxel_grid.transform_from(points_xyz)
     indices = indices[mask]
 
     counts = torch.ones_like(indices[:, 0])
     if pool_mode is not None and pool_mode == VoxelizationPoolingType.MEAN:
         indices, values, counts = voxel_pool(
-            indices, values, list(voxel_grid.dims)
+            indices, values, list(voxel_grid.grid_size)
         )
     return indices.int(), values, counts, mask
 
@@ -84,16 +84,16 @@ def voxelize_concatenate_kernel(
     """
     pos, roi_mask = crop_points(
         pos,
-        list(voxel_grid.min_range_m),
-        list(voxel_grid.max_range_m),
+        list(voxel_grid.min_world_coordinates_m),
+        list(voxel_grid.max_world_coordinates_m),
     )
 
     # Filter the values.
     values = values[roi_mask]
 
-    indices, mask = voxel_grid.transform_to_grid_coordinates(pos)
+    indices, mask = voxel_grid.transform_from(pos)
     indices = indices[mask]
-    raveled_indices = ravel_multi_index(indices, list(voxel_grid.dims))
+    raveled_indices = ravel_multi_index(indices, list(voxel_grid.grid_size))
 
     # Find indices which make bucket indices contiguous.
     permutation_sorted = torch.argsort(raveled_indices)
@@ -135,7 +135,7 @@ def voxelize_concatenate_kernel(
     voxelized_values[inverse_indices, index] = values[is_valid]
 
     inv_perm = torch.argsort(permutation_sorted[offset])
-    voxelized_indices = unravel_index(output, list(voxel_grid.dims)).int()
+    voxelized_indices = unravel_index(output, list(voxel_grid.grid_size)).int()
     voxelized_indices = voxelized_indices[inv_perm]
     voxelized_values = voxelized_values[inv_perm]
     counts = counts[inv_perm]

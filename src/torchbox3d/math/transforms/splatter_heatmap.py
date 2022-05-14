@@ -129,7 +129,7 @@ class SplatterHeatmap:
         x.cuboids = cuboids
 
         targets = x.cuboids.params.clone()
-        xy, mask = x.grid.transform_to_grid_coordinates(targets[..., :2])
+        xy, mask = x.grid.transform_from(targets[..., :2])
         xy = xy[mask]
         targets = targets[mask]
         offsets = offsets[mask]

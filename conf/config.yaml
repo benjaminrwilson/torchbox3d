@@ -5,7 +5,7 @@
 ##########################################################################################################
 
 defaults:
-  - model: centerpoint_sparse_voxelnet_50x50m.yaml # Model for experiment.
+  - model: centerpoint_point_pillars_50x50m.yaml # Model for experiment.
   - dataset: av2  # Dataset for experiment.
   - _self_
 
