@@ -20,7 +20,7 @@ class Data(TensorStruct):
 
     cuboids: Cuboids
     pos: Tensor
-    x: Tensor
+    values: Tensor
     uuids: Tuple[str, ...]
 
 

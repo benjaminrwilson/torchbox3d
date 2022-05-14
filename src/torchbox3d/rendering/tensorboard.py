@@ -10,10 +10,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from torch import Tensor
 from torchvision.utils import make_grid
 
-from torchbox3d.math.conversions import (
-    denormalize_pixel_intensities,
-    sweep_to_bev,
-)
+from torchbox3d.math.conversions import denormalize_pixel_intensities
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import RegularGridData
 from torchbox3d.structures.outputs import NetworkOutputs

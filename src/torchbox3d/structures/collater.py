@@ -36,7 +36,7 @@ def collate(data_list: Sequence[Data]) -> Data:
         elem = attr[0]
 
         # Pad with batch index.
-        if attr_name in set(["pos", "x"]):
+        if attr_name in set(["pos", "values"]):
             output[attr_name] = torch.cat(
                 [
                     F.pad(elem, [0, 1], "constant", i)
@@ -50,7 +50,7 @@ def collate(data_list: Sequence[Data]) -> Data:
         elif isinstance(elem, SparseTensor):
             sparse_tensor = sparse_collate(attr)
             output[attr_name] = SparseTensor(
-                feats=sparse_tensor.F, coords=sparse_tensor.C
+                values=sparse_tensor.F, indices=sparse_tensor.C
             )
         elif isinstance(elem, RegularGrid):
             output[attr_name] = attr[0]
@@ -61,6 +61,7 @@ def collate(data_list: Sequence[Data]) -> Data:
         elif isinstance(elem, GridTargets):
             output[attr_name] = GridTargets.cat(attr)
         else:
+            breakpoint()
             raise TypeError(f"Invalid type: {type(elem)}")
     data = RegularGridData(**output)
     return data

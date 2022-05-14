@@ -22,7 +22,7 @@ class SparseVoxelNet(LightningModule):
         delta_m_per_cell: (3,) Ratio of meters to cell in meters.
         min_world_coordinates_m: (3,) Minimum range along the x,y,z axes in meters.
         max_world_coordinates_m: (3,) Maximum range along the x,y,z axes in meters.
-        voxelization_type: Voxelization type used in the transformation.
+        cluster_type: Voxelization type used in the transformation.
     """
 
     name: str
@@ -30,7 +30,7 @@ class SparseVoxelNet(LightningModule):
     delta_m_per_cell: Tuple[int, int, int]
     min_world_coordinates_m: Tuple[int, int, int]
     max_world_coordinates_m: Tuple[int, int, int]
-    voxelization_type: str
+    cluster_type: str
     layers: ModuleDict = field(init=False)
 
     def __post_init__(self) -> None:

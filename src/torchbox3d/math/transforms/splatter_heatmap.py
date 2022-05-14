@@ -11,13 +11,13 @@ from torch import Tensor
 
 from torchbox3d.datasets.argoverse.constants import DATASET_TO_TAXONOMY
 from torchbox3d.math.kernels import ogrid_sparse_gaussian
+from torchbox3d.math.ops.cluster import unique_indices
 from torchbox3d.math.ops.coding import encode
 from torchbox3d.math.ops.index import (
     ravel_multi_index,
     scatter_nd,
     unravel_index,
 )
-from torchbox3d.math.ops.pool import unique_indices
 from torchbox3d.rendering.ops.shaders import clip_to_viewport
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData

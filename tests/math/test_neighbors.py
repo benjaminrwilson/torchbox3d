@@ -7,7 +7,7 @@ import torch
 from torch import Tensor
 
 from torchbox3d.math.neighbors import voxelize
-from torchbox3d.math.ops.voxelize import (
+from torchbox3d.math.ops.cluster import (
     VoxelizationType,
     voxelize_concatenate_kernel,
 )
@@ -301,7 +301,7 @@ def test_benchmark_voxelize_concatenate(
         points_xyz,
         points_xyz,
         voxel_grid,
-        voxelization_type=VoxelizationType.CONCATENATE,
+        cluster_type=VoxelizationType.CONCATENATE,
     )
 
 
@@ -339,5 +339,5 @@ def test_benchmark_voxelize_pool(
         points_xyz,
         points_xyz,
         voxel_grid,
-        voxelization_type=VoxelizationType.POOL,
+        cluster_type=VoxelizationType.POOL,
     )

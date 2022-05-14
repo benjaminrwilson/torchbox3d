@@ -45,7 +45,7 @@ arch_cfg:
       delta_m_per_cell: ${model.arch_cfg.backbone_cfg.delta_m_per_cell}
       min_world_coordinates_m: ${model.arch_cfg.backbone_cfg.min_world_coordinates_m}
       max_world_coordinates_m: ${model.arch_cfg.backbone_cfg.max_world_coordinates_m}
-      voxelization_type: ${model.arch_cfg.backbone_cfg.voxelization_type}
+      cluster_type: ${model.arch_cfg.backbone_cfg.cluster_type}
 
     splatter_heatmap:
       _target_: torchbox3d.math.transforms.splatter_heatmap.SplatterHeatmap  # Mapping to Python class for `hydra`.
@@ -75,7 +75,7 @@ arch_cfg:
     delta_m_per_cell: [0.1, 0.1, 0.2]
     min_world_coordinates_m: [-204.8, -204.8, -3.2]
     max_world_coordinates_m: [204.8, 204.8, 3.2]
-    voxelization_type: pool
+    cluster_type: pool
 
   ##########################################################################
   # NECK                                                                   #

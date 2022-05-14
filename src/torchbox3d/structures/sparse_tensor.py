@@ -16,13 +16,13 @@ from torchbox3d.math.ops.index import scatter_nd
 class SparseTensor(torchsparse.SparseTensor):  # type: ignore
     """Wrapper around `torchsparse.SparseTensor`."""
 
-    feats: Tensor
-    coords: Tensor
+    values: Tensor
+    indices: Tensor
     stride: Union[int, Tuple[int, ...]] = 1
 
     def __post_init__(self) -> None:
         """Initialize the parent class."""
-        super().__init__(self.feats, self.coords, stride=self.stride)
+        super().__init__(self.values, self.indices, stride=self.stride)
 
     def to_dense(self, size: Size) -> Tensor:
         """Convert a `SparseTensor` into a dense output.

@@ -6,8 +6,8 @@ from typing import Tuple
 
 import torch
 
-from torchbox3d.math.neighbors import grid_cluster
-from torchbox3d.math.ops.voxelize import Reduction
+from torchbox3d.math.crop import crop_points
+from torchbox3d.math.ops.cluster import ClusterType
 from torchbox3d.structures.data import Data, RegularGridData
 from torchbox3d.structures.regular_grid import BEVGrid, VoxelGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
@@ -21,17 +21,16 @@ class Voxelize:
         min_world_coordinates_m: (3,) Minimum range along the x,y,z axes in meters.
         max_world_coordinates_m: (3,) Maximum range along the x,y,z axes in meters.
         delta_m_per_cell: (3,) Ratio of meters to cell in meters.
-        voxelization_type: Voxelization type used in the transformation
-            (e.g., pooling).
+        cluster_type: Cluster type used in the transformation.
     """
 
     min_world_coordinates_m: Tuple[float, float, float]
     max_world_coordinates_m: Tuple[float, float, float]
     delta_m_per_cell: Tuple[float, float, float]
-    voxelization_type: Reduction
+    cluster_type: ClusterType
 
     @cached_property
-    def voxel_grid(self) -> VoxelGrid:
+    def grid(self) -> VoxelGrid:
         """Return the voxel grid associated with the transformation."""
         return VoxelGrid(
             min_world_coordinates_m=self.min_world_coordinates_m,
@@ -48,32 +47,30 @@ class Voxelize:
         Returns:
             The data with voxelized points.
         """
-        x.grid = self.voxel_grid
-        x.x = torch.cat((x.pos, x.x), dim=-1)
+        x.grid = self.grid
+        x.values = torch.cat((x.pos, x.values), dim=-1)
 
-        indices, values, _, _ = grid_cluster(
-            x.pos, x.x, self.voxel_grid, self.voxelization_type
-        )
-        x.voxels = SparseTensor(feats=values, coords=indices)
+        indices, values, _ = x.grid.cluster(x.pos, x.values, self.cluster_type)
+        x.voxels = SparseTensor(values=values, indices=indices)
         return x
 
 
 @dataclass
 class Pillarize:
-    """Construct a voxelization transformation.
+    """Construct a pillarize transformation.
 
     Args:
         min_world_coordinates_m: (2,) Minimum range along the x,y axes in meters.
         max_world_coordinates_m: (2,) Maximum range along the x,y axes in meters.
         delta_m_per_cell: (2,) Ratio of meters to cell in meters.
-        voxelization_type: Voxelization type used in the transformation
+        cluster_type: Cluster type used in the transformation
             (e.g., pooling).
     """
 
     min_world_coordinates_m: Tuple[float, float]
     max_world_coordinates_m: Tuple[float, float]
     delta_m_per_cell: Tuple[float, float]
-    voxelization_type: Reduction
+    cluster_type: ClusterType
 
     @cached_property
     def bev_grid(self) -> BEVGrid:
@@ -94,10 +91,11 @@ class Pillarize:
             The data with voxelized points.
         """
         x.grid = self.bev_grid
-        x.x = torch.cat((x.pos, x.x), dim=-1)
+        x.values = torch.cat((x.pos, x.values), dim=-1)
 
-        indices, values, _, _ = grid_cluster(
-            x.pos, x.x, self.bev_grid, self.voxelization_type
+        pos_cropped, mask = x.grid.crop_points(x.pos)
+        indices, values, _ = x.grid.cluster(
+            pos_cropped[..., :2], x.values[mask], self.cluster_type
         )
-        x.voxels = SparseTensor(feats=values, coords=indices)
+        x.voxels = SparseTensor(values=values, indices=indices)
         return x

@@ -9,7 +9,6 @@ from torch import Tensor
 
 from torchbox3d.math.crop import crop_points
 from torchbox3d.math.ops.index import ravel_multi_index, unravel_index
-from torchbox3d.math.ops.pool import mean_pool
 from torchbox3d.structures.regular_grid import RegularGrid
 
 
@@ -29,7 +28,7 @@ class VoxelizationPoolingType(str, Enum):
 
 
 # @torch.jit.script
-def voxelize_pool_kernel(
+def cluster_pool_kernel(
     xyz: Tensor,
     values: Tensor,
     voxel_grid: RegularGrid,
@@ -64,7 +63,7 @@ def voxelize_pool_kernel(
 
 
 # @torch.jit.script
-def voxelize_concatenate_kernel(
+def concatenate_reduction_kernel(
     pos: Tensor, values: Tensor, voxel_grid: RegularGrid, max_num_pts: int = 20
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """Places a set of points in R^3 into a voxel grid.

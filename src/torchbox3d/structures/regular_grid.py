@@ -10,6 +10,11 @@ import torch
 from torch import Tensor
 
 from torchbox3d.math.crop import crop_points
+from torchbox3d.math.ops.cluster import (
+    ClusterType,
+    concatenate_cluster,
+    mean_cluster,
+)
 from torchbox3d.rendering.ops.shaders import align_corners
 
 
@@ -121,6 +126,47 @@ class RegularGrid:
             abs(x) for x in self.min_world_coordinates_m
         ]
         return tuple(min_world_coordinates_m)
+
+    def cluster(
+        self,
+        pos: Tensor,
+        values: Tensor,
+        reduction: ClusterType = ClusterType.MEAN,
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """Cluster a point cloud into a grid of voxels.
+
+        Args:
+            indices: (N,3) Spatial indices.
+            values: (N,F) Features associated with the points.
+            grid: Voxel grid metadata.
+            reduction: The reduction applied after clustering.
+
+        Returns:
+            The voxel indices, values, counts, and cropping mask.
+
+        Raises:
+            NotImplementedError: If the voxelization mode is not implemented.
+        """
+        if reduction.upper() == ClusterType.MEAN:
+            return mean_cluster(
+                pos,
+                values,
+                list(self.grid_size),
+            )
+        elif reduction.upper() == ClusterType.CONCATENATE:
+            return concatenate_cluster(pos, values, list(self.grid_size))
+        else:
+            raise NotImplementedError(
+                f"The reduction, {reduction}, is not implemented!"
+            )
+
+    def crop_points(self, points: Tensor) -> Tuple[Tensor, Tensor]:
+        points, mask = crop_points(
+            points,
+            list(self.min_world_coordinates_m),
+            list(self.max_world_coordinates_m),
+        )
+        return points, mask
 
 
 @dataclass

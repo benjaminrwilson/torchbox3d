@@ -27,7 +27,7 @@ class PointPillars(LightningModule):
     delta_m_per_cell: Tuple[int, int, int]
     min_world_coordinates_m: Tuple[int, int]
     max_world_coordinates_m: Tuple[int, int]
-    voxelization_type: str
+    cluster_type: str
     debug: bool = False
     name: str = "point_pillars"
 
