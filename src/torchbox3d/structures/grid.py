@@ -11,12 +11,7 @@ from torch import Tensor
 
 from torchbox3d.math.conversions import convert_world_coordinates_to_grid
 from torchbox3d.math.crop import crop_coordinates
-from torchbox3d.math.ops.cluster import (
-    ClusterType,
-    concatenate_cluster_grid,
-    mean_cluster_grid,
-)
-from torchbox3d.rendering.ops.shaders import align_corners
+from torchbox3d.math.ops.cluster import ClusterType, cluster_grid
 
 
 @dataclass
@@ -82,7 +77,6 @@ class RegularGrid:
         indices = coordinates_m[..., :N] / delta_m_per_cell[:N]
         if not align_corners:
             indices += 0.5
-            # indices = (coordinates_m[..., :N] + 0.5) / delta_m_per_cell[:N] - 0.5
         return indices.long()
 
     def transform_from(self, coordinates_m: Tensor) -> Tuple[Tensor, Tensor]:
@@ -126,7 +120,6 @@ class RegularGrid:
         Args:
             indices: (N,3) Spatial positions in meters.
             values: (N,F) Values associated with each spatial position.
-            grid: Spatial grid.
             cluster_type: Cluster type to be applied.
 
         Returns:
@@ -135,12 +128,12 @@ class RegularGrid:
         Raises:
             NotImplementedError: If the voxelization mode is not implemented.
         """
-        if cluster_type.upper() == ClusterType.MEAN:
-            return mean_cluster_grid(indices, values, list(self.grid_size))
-        elif cluster_type.upper() == ClusterType.CONCATENATE:
-            return concatenate_cluster_grid(
-                indices, values, list(self.grid_size)
-            )
+        return cluster_grid(
+            indices=indices,
+            values=values,
+            grid_size=list(self.grid_size),
+            cluster_type=cluster_type,
+        )
 
     def crop_points(self, points: Tensor) -> Tuple[Tensor, Tensor]:
         points, mask = crop_coordinates(

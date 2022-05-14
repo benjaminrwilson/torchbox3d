@@ -49,7 +49,7 @@ def to_tensorboard(
     grid = torch.sparse.sum(grid, dim=3)
     bev = (
         grid.to_dense()
-        .permute(2, 3, 1, 0)[0][2:3]
+        .permute(2, 3, 0, 1)[0][2:3]
         .abs()
         .repeat_interleave(3, dim=0)
     )

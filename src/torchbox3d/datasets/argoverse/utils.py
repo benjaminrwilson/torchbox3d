@@ -76,7 +76,9 @@ def read_sweep_data(
     log_id = sweep_path.parent.parent.parent.stem
     uuid = (log_id, str(timestamp_ns))
 
-    pos = lidar[..., :3]
-    x = lidar[..., 3:]
-    datum = Data(coordinates_m=pos, values=x, cuboids=cuboids, uuids=uuid)
+    coordinates_m = lidar[..., :3]
+    values = lidar[..., 3:]
+    datum = Data(
+        coordinates_m=coordinates_m, values=values, cuboids=cuboids, uuids=uuid
+    )
     return datum

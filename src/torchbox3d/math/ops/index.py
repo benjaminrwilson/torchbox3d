@@ -1,6 +1,6 @@
 """Methods for manipulating indices."""
 
-from typing import List
+from typing import List, Tuple
 
 import torch
 from torch import Tensor
@@ -188,3 +188,26 @@ def ogrid_sparse_neighborhoods(
     ogrid = ogrid_symmetric(intervals)
     ogrid_sparse: Tensor = (offsets[..., None, :] + ogrid[None]).flatten(0, 1)
     return ogrid_sparse
+
+
+def unique_indices(indices: Tensor, dim: int = 0) -> Tensor:
+    """Compute the indices corresponding to the unique value.
+
+    Args:
+        indices: (N,K) Coordinate inputs.
+        dim: Dimension to compute unique operation over.
+
+    Returns:
+        The indices corresponding to the selected values.
+    """
+    out: Tuple[Tensor, Tensor] = torch.unique(
+        indices, return_inverse=True, dim=dim
+    )
+    unique, inverse = out
+    perm = torch.arange(
+        inverse.size(dim), dtype=inverse.dtype, device=inverse.device
+    )
+    inverse, perm = inverse.flip([dim]), perm.flip([dim])
+    inv = inverse.new_empty(unique.size(dim)).scatter_(dim, inverse, perm)
+    inv, _ = inv.sort()
+    return inv

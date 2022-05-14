@@ -1,4 +1,4 @@
-"""Nearest neighbor methods."""
+"""Clustering operations."""
 
 from enum import Enum, unique
 from typing import List, Tuple
@@ -18,29 +18,26 @@ class ClusterType(str, Enum):
     MEAN = "MEAN"
 
 
-def mean_cluster_grid(
+def cluster_grid(
     indices: Tensor,
     values: Tensor,
     grid_size: List[int],
+    max_num_values: int = 1,
+    cluster_type: ClusterType = ClusterType.MEAN,
 ) -> Tuple[Tensor, Tensor, Tensor]:
-    indices, values, counts = _mean_cluster_grid_kernel(
-        indices, values, grid_size
-    )
-    return indices, values, counts
-
-
-def concatenate_cluster_grid(
-    indices: Tensor,
-    values: Tensor,
-    grid_size: List[int],
-    max_num_values: int = 20,
-) -> Tuple[Tensor, Tensor, Tensor]:
-    indices, values, counts = _concatenate_cluster_grid_kernel(
-        indices,
-        values,
-        grid_size,
-        max_num_values=max_num_values,
-    )
+    if cluster_type.upper() == ClusterType.MEAN:
+        indices, values, counts = _mean_cluster_grid_kernel(
+            indices, values, grid_size
+        )
+    elif cluster_type.upper() == ClusterType.CONCATENATE:
+        indices, values, counts = _concatenate_cluster_grid_kernel(
+            indices,
+            values,
+            grid_size,
+            max_num_values=max_num_values,
+        )
+    else:
+        raise NotImplementedError()
     return indices, values, counts
 
 
@@ -170,26 +167,3 @@ def _concatenate_cluster_grid_kernel(
     voxelized_values = voxelized_values[inv_perm]
     counts = counts[inv_perm]
     return voxelized_indices, voxelized_values, counts
-
-
-def unique_indices(indices: Tensor, dim: int = 0) -> Tensor:
-    """Compute the indices corresponding to the unique value.
-
-    Args:
-        indices: (N,K) Coordinate inputs.
-        dim: Dimension to compute unique operation over.
-
-    Returns:
-        The indices corresponding to the selected values.
-    """
-    out: Tuple[Tensor, Tensor] = torch.unique(
-        indices, return_inverse=True, dim=dim
-    )
-    unique, inverse = out
-    perm = torch.arange(
-        inverse.size(dim), dtype=inverse.dtype, device=inverse.device
-    )
-    inverse, perm = inverse.flip([dim]), perm.flip([dim])
-    inv = inverse.new_empty(unique.size(dim)).scatter_(dim, inverse, perm)
-    inv, _ = inv.sort()
-    return inv

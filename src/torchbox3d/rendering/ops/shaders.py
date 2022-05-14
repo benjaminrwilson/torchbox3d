@@ -24,20 +24,6 @@ from torchbox3d.math.ops.index import (
 
 
 @torch.jit.script
-def align_corners(pos: Tensor) -> Tensor:
-    """Align a set of points to the center of a regular grid.
-
-    Args:
-        pos: (N,K) Set of points.
-
-    Returns:
-        The points with a half cell offset (centered).
-    """
-    centered_points = pos + 0.5
-    return centered_points
-
-
-@torch.jit.script
 def normal2(p1: Tensor, p2: Tensor, eps: float = EPS) -> Tensor:
     """Compute the 2D normal vector to the line defined by (p1,p2).
 
