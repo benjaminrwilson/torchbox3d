@@ -127,32 +127,32 @@ class RegularGrid:
 
     def cluster(
         self,
-        pos: Tensor,
+        pos_m: Tensor,
         values: Tensor,
         cluster_type: ClusterType = ClusterType.MEAN,
     ) -> Tuple[Tensor, Tensor, Tensor]:
-        """Cluster a point cloud into a grid of voxels.
+        """Cluster a set of values by their respective positions.
 
         Args:
-            indices: (N,3) Spatial indices.
-            values: (N,F) Features associated with the points.
-            grid: Voxel grid metadata.
-            cluster_type: The reduction applied after clustering.
+            pos_m: (N,3) Spatial positions in meters.
+            values: (N,F) Values associated with each spatial position.
+            grid: Spatial grid.
+            cluster_type: Cluster type to be applied.
 
         Returns:
-            The spatial indices, values, counts.
+            The spatial indices, values, and counts.
 
         Raises:
             NotImplementedError: If the voxelization mode is not implemented.
         """
         if cluster_type.upper() == ClusterType.MEAN:
             return mean_cluster(
-                pos,
+                pos_m,
                 values,
                 list(self.grid_size),
             )
         elif cluster_type.upper() == ClusterType.CONCATENATE:
-            return concatenate_cluster(pos, values, list(self.grid_size))
+            return concatenate_cluster(pos_m, values, list(self.grid_size))
         else:
             raise NotImplementedError(
                 f"The reduction, {cluster_type}, is not implemented!"
