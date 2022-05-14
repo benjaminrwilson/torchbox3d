@@ -53,45 +53,45 @@ class RegularGrid:
 
     @cached_property
     def grid_size(self) -> Tuple[int, ...]:
-        """Size of the grid _after_ bucketing."""
+        """Return the size of the grid."""
         min_world_coordinates_m = torch.as_tensor(self.min_world_coordinates_m)
         max_world_coordinates_m = torch.as_tensor(self.max_world_coordinates_m)
         range_m = max_world_coordinates_m - min_world_coordinates_m
-        dims: List[int] = self.scale_and_quantize_points(range_m).tolist()
+        dims: List[int] = self.scale_and_center_pos(range_m).tolist()
         return tuple(dims)
 
-    def quantize_points(self, points_m: Tensor) -> Tensor:
-        """Quantize the points to integer coordinates.
+    def center_pos(self, pos_m: Tensor) -> Tensor:
+        """Align positions to centered integer spatial coordinates.
 
         Args:
-            points_m: (N,D) List of points in meters.
+            pos_m: (N,D) Tensor of positions.
 
         Returns:
-            (N,D) List of quantized points.
+            (N,D) Tensor of centered integer coordinates.
         """
         # Add half-bucket offset.
-        centered_points_m: Tensor = align_corners(points_m)
-        quantized_points_m: Tensor = centered_points_m.floor().long()
-        return quantized_points_m
+        centered_pos_m: Tensor = align_corners(pos_m)
+        integer_pos_m: Tensor = centered_pos_m.floor().long()
+        return integer_pos_m
 
-    def scale_and_quantize_points(self, points_m: Tensor) -> Tensor:
-        """Scale _and_ quantize the points.
+    def scale_and_center_pos(self, pos_m: Tensor) -> Tensor:
+        """Scale and center the positions.
 
         Args:
-            points_m: (N,D) Points in meters.
+            pos_m: (N,D) Positions in meters.
 
         Returns:
-            The scaled, quantized points.
+            The scaled, centered positions.
         """
-        N = min(self.N, points_m.shape[-1])
+        N = min(self.N, pos_m.shape[-1])
         delta_m_per_cell = torch.as_tensor(
             self.delta_m_per_cell,
-            device=points_m.device,
+            device=pos_m.device,
             dtype=torch.float,
         )
-        scaled_points: Tensor = points_m[..., :N] / delta_m_per_cell[:N]
-        quantized_points: Tensor = self.quantize_points(scaled_points)
-        return quantized_points
+        scaled_pos_m: Tensor = pos_m[..., :N] / delta_m_per_cell[:N]
+        centered_pos_m: Tensor = self.center_pos(scaled_pos_m)
+        return centered_pos_m
 
     def transform_from(self, points_m: Tensor) -> Tuple[Tensor, Tensor]:
         """Transform points from world coordinates to grid coordinates (in meters).
@@ -106,9 +106,7 @@ class RegularGrid:
         offset_m = torch.zeros_like(points_m[0])
         offset_m[:D] = torch.as_tensor(self.min_world_coordinates_m[:D]).abs()
 
-        quantized_points_grid = self.scale_and_quantize_points(
-            points_m + offset_m
-        )
+        quantized_points_grid = self.scale_and_center_pos(points_m + offset_m)
 
         upper = [float(x) for x in self.grid_size]
         _, mask = crop_points(quantized_points_grid, [0.0, 0.0, 0.0], upper)
@@ -131,7 +129,7 @@ class RegularGrid:
         self,
         pos: Tensor,
         values: Tensor,
-        reduction: ClusterType = ClusterType.MEAN,
+        cluster_type: ClusterType = ClusterType.MEAN,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """Cluster a point cloud into a grid of voxels.
 
@@ -139,25 +137,25 @@ class RegularGrid:
             indices: (N,3) Spatial indices.
             values: (N,F) Features associated with the points.
             grid: Voxel grid metadata.
-            reduction: The reduction applied after clustering.
+            cluster_type: The reduction applied after clustering.
 
         Returns:
-            The voxel indices, values, counts, and cropping mask.
+            The spatial indices, values, counts.
 
         Raises:
             NotImplementedError: If the voxelization mode is not implemented.
         """
-        if reduction.upper() == ClusterType.MEAN:
+        if cluster_type.upper() == ClusterType.MEAN:
             return mean_cluster(
                 pos,
                 values,
                 list(self.grid_size),
             )
-        elif reduction.upper() == ClusterType.CONCATENATE:
+        elif cluster_type.upper() == ClusterType.CONCATENATE:
             return concatenate_cluster(pos, values, list(self.grid_size))
         else:
             raise NotImplementedError(
-                f"The reduction, {reduction}, is not implemented!"
+                f"The reduction, {cluster_type}, is not implemented!"
             )
 
     def crop_points(self, points: Tensor) -> Tuple[Tensor, Tensor]:
