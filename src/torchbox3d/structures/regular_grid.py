@@ -20,8 +20,8 @@ class RegularGrid:
     Reference: https://en.wikipedia.org/wiki/Regular_grid
 
     Args:
-        min_world_coordinates_m: (N,) Minimum coordinates (in meters).
-        max_world_coordinates_m: (N,) Maximum coordinates (in meters).
+        min_world_coordinates_m: (N,) Minimum world coordinates (in meters).
+        max_world_coordinates_m: (N,) Maximum world coordinates (in meters).
         delta_m_per_cell: (N,) Ratio of meters to cell in each dimension.
     """
 
@@ -51,9 +51,7 @@ class RegularGrid:
         """Size of the grid _after_ bucketing."""
         min_world_coordinates_m = torch.as_tensor(self.min_world_coordinates_m)
         max_world_coordinates_m = torch.as_tensor(self.max_world_coordinates_m)
-        range_m: Tensor = torch.as_tensor(
-            max_world_coordinates_m - min_world_coordinates_m
-        )
+        range_m = max_world_coordinates_m - min_world_coordinates_m
         dims: List[int] = self.scale_and_quantize_points(range_m).tolist()
         return tuple(dims)
 
