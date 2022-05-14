@@ -256,7 +256,7 @@ def line2(
     ).transpose(0, 1)
     colors = color[:, None].repeat(1, len(line_uv))
     raveled_indices = ravel_multi_index(line_uv, list(img.shape[1:]))
-    img.view(3, -1).scatter_(
+    img.reshape(3, -1).scatter_(
         dim=-1, index=raveled_indices[None].repeat(3, 1), src=colors
     )
     return img

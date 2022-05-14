@@ -1,8 +1,17 @@
 """Geometric conversions."""
 
 
+from typing import List, Tuple, Union
+
 import torch
 from torch import Tensor
+
+from torchbox3d.math.crop import crop_coordinates
+from torchbox3d.math.ops.cluster import (
+    ClusterType,
+    concatenate_cluster_grid,
+    mean_cluster_grid,
+)
 
 
 @torch.jit.script
@@ -121,3 +130,65 @@ def sph_to_cart(sph_rad: Tensor) -> Tensor:
 #         bev = bev.unsqueeze(-1)
 #     bev = bev.permute(2, 0, 1)[:, None]
 #     return bev
+
+
+# @torch.jit.script
+def convert_world_coordinates_to_grid(
+    coordinates_m: Tensor,
+    min_world_coordinates_m: Union[List[float], Tensor],
+    delta_m_per_cell: Union[List[float], Tensor],
+    grid_size: Union[List[int], Tensor],
+    align_corners: bool = False,
+) -> Tuple[Tensor, Tensor]:
+    if isinstance(min_world_coordinates_m, List):
+        min_world_coordinates_m = torch.as_tensor(
+            min_world_coordinates_m, device=coordinates_m.device
+        )
+    if isinstance(delta_m_per_cell, List):
+        delta_m_per_cell = torch.as_tensor(
+            delta_m_per_cell, device=coordinates_m.device
+        )
+    if isinstance(grid_size, List):
+        grid_size = torch.as_tensor(grid_size, device=coordinates_m.device)
+
+    D = min(coordinates_m.shape[-1], len(min_world_coordinates_m))
+    offset_m = torch.zeros_like(coordinates_m[0])
+    offset_m[:D] = torch.as_tensor(min_world_coordinates_m[:D]).abs()
+
+    indices = (coordinates_m[..., :D] + offset_m[:D]) / delta_m_per_cell
+    if not align_corners:
+        indices[..., :D] += 0.5
+    indices = indices.long()
+
+    upper = [float(x) for x in grid_size]
+    _, mask = crop_coordinates(indices, [0.0, 0.0, 0.0], upper)
+    return indices, mask
+
+
+def voxelize(
+    coordinates_m: Tensor,
+    values: Tensor,
+    min_world_coordinates_m: List[float],
+    delta_m_per_cell: List[float],
+    grid_size: List[int],
+    align_corners: bool = False,
+    max_num_values: int = 1,
+    cluster_type: ClusterType = ClusterType.MEAN,
+) -> Tuple[Tensor, Tensor, Tensor]:
+    indices, mask = convert_world_coordinates_to_grid(
+        coordinates_m,
+        min_world_coordinates_m,
+        delta_m_per_cell,
+        grid_size,
+        align_corners,
+    )
+
+    if cluster_type.upper() == ClusterType.MEAN:
+        indices, values, counts = mean_cluster_grid(indices, values, grid_size)
+    elif cluster_type.upper() == ClusterType.CONCATENATE:
+        indices, values, counts = concatenate_cluster_grid(
+            indices, values, grid_size, max_num_values=max_num_values
+        )
+    else:
+        raise NotImplementedError()
+    return indices, values, counts

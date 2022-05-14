@@ -9,18 +9,19 @@ from typing import List, Tuple
 import torch
 from torch import Tensor
 
-from torchbox3d.math.crop import crop_points
+from torchbox3d.math.conversions import convert_world_coordinates_to_grid
+from torchbox3d.math.crop import crop_coordinates
 from torchbox3d.math.ops.cluster import (
     ClusterType,
-    concatenate_cluster,
-    mean_cluster,
+    concatenate_cluster_grid,
+    mean_cluster_grid,
 )
 from torchbox3d.rendering.ops.shaders import align_corners
 
 
 @dataclass
 class RegularGrid:
-    """Models an N-dimensional grid.
+    """Models a regular, n-dimensional grid.
 
     Reference: https://en.wikipedia.org/wiki/Regular_grid
 
@@ -46,7 +47,7 @@ class RegularGrid:
                 "must have the same dimension!"
             )
 
-    @cached_property
+    @property
     def N(self) -> int:
         """Return the dimension of the grid."""
         return len(self.min_world_coordinates_m)
@@ -57,60 +58,49 @@ class RegularGrid:
         min_world_coordinates_m = torch.as_tensor(self.min_world_coordinates_m)
         max_world_coordinates_m = torch.as_tensor(self.max_world_coordinates_m)
         range_m = max_world_coordinates_m - min_world_coordinates_m
-        dims: List[int] = self.scale_and_center_pos(range_m).tolist()
+        dims: List[int] = self.scale_and_center_coordinates(range_m).tolist()
         return tuple(dims)
 
-    def center_pos(self, pos_m: Tensor) -> Tensor:
-        """Align positions to centered integer spatial coordinates.
-
-        Args:
-            pos_m: (N,D) Tensor of positions.
-
-        Returns:
-            (N,D) Tensor of centered integer coordinates.
-        """
-        # Add half-bucket offset.
-        centered_pos_m: Tensor = align_corners(pos_m)
-        integer_pos_m: Tensor = centered_pos_m.floor().long()
-        return integer_pos_m
-
-    def scale_and_center_pos(self, pos_m: Tensor) -> Tensor:
+    def scale_and_center_coordinates(
+        self, coordinates_m: Tensor, align_corners: bool = True
+    ) -> Tensor:
         """Scale and center the positions.
 
         Args:
-            pos_m: (N,D) Positions in meters.
+            coordinates_m: (N,D) Positions in meters.
 
         Returns:
             The scaled, centered positions.
         """
-        N = min(self.N, pos_m.shape[-1])
+        N = min(self.N, coordinates_m.shape[-1])
         delta_m_per_cell = torch.as_tensor(
             self.delta_m_per_cell,
-            device=pos_m.device,
+            device=coordinates_m.device,
             dtype=torch.float,
         )
-        scaled_pos_m: Tensor = pos_m[..., :N] / delta_m_per_cell[:N]
-        centered_pos_m: Tensor = self.center_pos(scaled_pos_m)
-        return centered_pos_m
 
-    def transform_from(self, points_m: Tensor) -> Tuple[Tensor, Tensor]:
-        """Transform points from world coordinates to grid coordinates (in meters).
+        indices = coordinates_m[..., :N] / delta_m_per_cell[:N]
+        if not align_corners:
+            indices += 0.5
+            # indices = (coordinates_m[..., :N] + 0.5) / delta_m_per_cell[:N] - 0.5
+        return indices.long()
+
+    def transform_from(self, coordinates_m: Tensor) -> Tuple[Tensor, Tensor]:
+        """Transform positions from world coordinates to grid coordinates (in meters).
 
         Args:
-            points_m: (N,D) list of points.
+            coordinates_m: (N,D) list of points.
 
         Returns:
             (N,D) list of quantized grid coordinates.
         """
-        D = min(points_m.shape[-1], len(self.min_world_coordinates_m))
-        offset_m = torch.zeros_like(points_m[0])
-        offset_m[:D] = torch.as_tensor(self.min_world_coordinates_m[:D]).abs()
-
-        quantized_points_grid = self.scale_and_center_pos(points_m + offset_m)
-
-        upper = [float(x) for x in self.grid_size]
-        _, mask = crop_points(quantized_points_grid, [0.0, 0.0, 0.0], upper)
-        return quantized_points_grid, mask
+        indices, mask = convert_world_coordinates_to_grid(
+            coordinates_m,
+            list(self.min_world_coordinates_m),
+            list(self.delta_m_per_cell),
+            grid_size=list(self.grid_size),
+        )
+        return indices, mask
 
     def downsample(self, stride: int) -> Tuple[int, ...]:
         """Downsample the grid coordinates."""
@@ -127,14 +117,14 @@ class RegularGrid:
 
     def cluster(
         self,
-        pos_m: Tensor,
+        indices: Tensor,
         values: Tensor,
         cluster_type: ClusterType = ClusterType.MEAN,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """Cluster a set of values by their respective positions.
 
         Args:
-            pos_m: (N,3) Spatial positions in meters.
+            indices: (N,3) Spatial positions in meters.
             values: (N,F) Values associated with each spatial position.
             grid: Spatial grid.
             cluster_type: Cluster type to be applied.
@@ -146,20 +136,14 @@ class RegularGrid:
             NotImplementedError: If the voxelization mode is not implemented.
         """
         if cluster_type.upper() == ClusterType.MEAN:
-            return mean_cluster(
-                pos_m,
-                values,
-                list(self.grid_size),
-            )
+            return mean_cluster_grid(indices, values, list(self.grid_size))
         elif cluster_type.upper() == ClusterType.CONCATENATE:
-            return concatenate_cluster(pos_m, values, list(self.grid_size))
-        else:
-            raise NotImplementedError(
-                f"The reduction, {cluster_type}, is not implemented!"
+            return concatenate_cluster_grid(
+                indices, values, list(self.grid_size)
             )
 
     def crop_points(self, points: Tensor) -> Tuple[Tensor, Tensor]:
-        points, mask = crop_points(
+        points, mask = crop_coordinates(
             points,
             list(self.min_world_coordinates_m),
             list(self.max_world_coordinates_m),

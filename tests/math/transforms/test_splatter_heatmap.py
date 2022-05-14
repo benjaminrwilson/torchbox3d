@@ -7,7 +7,7 @@ import torch
 
 from torchbox3d.math.transforms.splatter_heatmap import SplatterHeatmap
 from torchbox3d.structures.cuboids import Cuboids
-from torchbox3d.structuresgrid import VoxelGrid
+from torchbox3d.structures.grid import VoxelGrid
 
 
 @pytest.mark.parametrize(

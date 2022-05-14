@@ -9,9 +9,9 @@ from torchsparse.utils.collate import sparse_collate
 
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
 from torchbox3d.structures.targets import GridTargets
-from torchbox3d.structuresgrid import RegularGrid
 
 
 def collate(data_list: Sequence[Data]) -> Data:
@@ -36,7 +36,7 @@ def collate(data_list: Sequence[Data]) -> Data:
         elem = attr[0]
 
         # Pad with batch index.
-        if attr_name in set(["pos", "values"]):
+        if attr_name in set(["coordinates_m", "values"]):
             output[attr_name] = torch.cat(
                 [
                     F.pad(elem, [0, 1], "constant", i)
@@ -61,7 +61,6 @@ def collate(data_list: Sequence[Data]) -> Data:
         elif isinstance(elem, GridTargets):
             output[attr_name] = GridTargets.cat(attr)
         else:
-            breakpoint()
             raise TypeError(f"Invalid type: {type(elem)}")
     data = RegularGridData(**output)
     return data

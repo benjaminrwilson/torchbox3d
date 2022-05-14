@@ -15,7 +15,7 @@ from torch.nn.modules.linear import Linear
 
 from torchbox3d.math.ops.index import scatter_nd
 from torchbox3d.structures.data import RegularGridData
-from torchbox3d.structuresgrid import RegularGrid
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.utils.io import write_img
 
 
@@ -28,7 +28,7 @@ class PointPillars(LightningModule):
     min_world_coordinates_m: Tuple[int, int]
     max_world_coordinates_m: Tuple[int, int]
     cluster_type: str
-    debug: bool = False
+    debug: bool = True
     name: str = "point_pillars"
 
     def __post_init__(self) -> None:

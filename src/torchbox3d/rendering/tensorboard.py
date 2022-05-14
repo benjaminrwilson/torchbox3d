@@ -13,8 +13,8 @@ from torchvision.utils import make_grid
 from torchbox3d.math.conversions import denormalize_pixel_intensities
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import RegularGridData
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.outputs import NetworkOutputs
-from torchbox3d.structuresgrid import RegularGrid
 
 
 @rank_zero_only
@@ -47,8 +47,12 @@ def to_tensorboard(
         indices=gts.voxels.C.mT, values=gts.voxels.F[..., :3]
     )
     grid = torch.sparse.sum(grid, dim=3)
-    grid = grid.to_dense().permute(2, 3, 0, 1)
-    breakpoint()
+    bev = (
+        grid.to_dense()
+        .permute(2, 3, 1, 0)[0][2:3]
+        .abs()
+        .repeat_interleave(3, dim=0)
+    )
 
     # bev = sweep_to_bev(voxel_list[0], gts.grid)[0]
     # bev = bev.repeat(3, 1, 1)

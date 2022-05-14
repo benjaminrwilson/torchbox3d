@@ -6,16 +6,17 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchbox3d.math.neighbors import voxelize
+from torchbox3d.math.conversions import voxelize
 from torchbox3d.math.ops.cluster import (
-    VoxelizationType,
-    voxelize_concatenate_kernel,
+    ClusterType,
+    concatenate_cluster_grid,
+    mean_cluster_grid,
 )
-from torchbox3d.structuresgrid import BEVGrid, VoxelGrid
+from torchbox3d.structures.grid import BEVGrid, RegularGrid, VoxelGrid
 
 
 @pytest.mark.parametrize(
-    "voxel_grid, points_xyz, indices_, values_, counts_",
+    "grid, coordinates_m, indices_, values_, counts_",
     [
         pytest.param(
             VoxelGrid(
@@ -106,24 +107,32 @@ from torchbox3d.structuresgrid import BEVGrid, VoxelGrid
     ids=["test0", "test1"],
 )
 def test_voxelize(
-    voxel_grid: VoxelGrid,
-    points_xyz: Tensor,
+    grid: VoxelGrid,
+    coordinates_m: Tensor,
     indices_: Tensor,
     values_: Tensor,
     counts_: Tensor,
 ) -> None:
     """Test voxelizing a point cloud."""
-    indices, values, counts, _ = voxelize(points_xyz, points_xyz, voxel_grid)
+    indices, values, counts = voxelize(
+        coordinates_m,
+        coordinates_m,
+        list(grid.min_world_coordinates_m),
+        list(grid.delta_m_per_cell),
+        list(grid.grid_size),
+        cluster_type=ClusterType.MEAN,
+    )
+
     torch.testing.assert_allclose(indices, indices_)
     torch.testing.assert_allclose(values, values_)
     torch.testing.assert_allclose(counts, counts_)
 
 
 @pytest.mark.parametrize(
-    "voxel_grid, points_m, indices_, values_, counts_",
+    "grid, coordinates_m, indices_, values_, counts_",
     [
         pytest.param(
-            # voxel_grid
+            # grid
             VoxelGrid(
                 min_world_coordinates_m=(-5.0, -5.0, -5.0),
                 max_world_coordinates_m=(+5.0, +5.0, +5.0),
@@ -260,26 +269,31 @@ def test_voxelize(
     ],
 )
 def test_voxelize_concatenate_kernel(
-    voxel_grid: VoxelGrid,
-    points_m: Tensor,
+    grid: RegularGrid,
+    coordinates_m: Tensor,
     indices_: Tensor,
     values_: Tensor,
     counts_: Tensor,
 ) -> None:
     """Test voxelization with truncated reduction."""
-    indices, values, counts, _ = voxelize_concatenate_kernel(
-        points_m,
-        points_m,
-        voxel_grid,
-        max_num_pts=2,
+    indices, values, counts = voxelize(
+        coordinates_m,
+        coordinates_m,
+        list(grid.min_world_coordinates_m),
+        list(grid.delta_m_per_cell),
+        list(grid.grid_size),
+        cluster_type=ClusterType.CONCATENATE,
+        max_num_values=2,
     )
+
+    breakpoint()
     torch.testing.assert_allclose(indices, indices_)
     torch.testing.assert_allclose(values, values_)
     torch.testing.assert_allclose(counts, counts_)
 
 
 @pytest.mark.parametrize(
-    "points_xyz, voxel_grid",
+    "points_xyz, grid",
     [
         pytest.param(
             torch.rand((100000, 3)),
@@ -293,20 +307,19 @@ def test_voxelize_concatenate_kernel(
     ids=["Benchmark the voxelization concatenate op with 100,000 points."],
 )
 def test_benchmark_voxelize_concatenate(
-    benchmark: Callable[..., Any], points_xyz: Tensor, voxel_grid: VoxelGrid
+    benchmark: Callable[..., Any], points_xyz: Tensor, grid: VoxelGrid
 ) -> None:
     """Benchmark concatenate kernel with 100k points."""
     benchmark(
-        voxelize,
+        concatenate_cluster_grid,
         points_xyz,
         points_xyz,
-        voxel_grid,
-        cluster_type=VoxelizationType.CONCATENATE,
+        list(grid.grid_size),
     )
 
 
 @pytest.mark.parametrize(
-    "points_xyz, voxel_grid",
+    "points_xyz, grid",
     [
         pytest.param(
             torch.rand((100000, 3)),
@@ -331,13 +344,12 @@ def test_benchmark_voxelize_concatenate(
     ],
 )
 def test_benchmark_voxelize_pool(
-    benchmark: Callable[..., Any], points_xyz: Tensor, voxel_grid: VoxelGrid
+    benchmark: Callable[..., Any], points_xyz: Tensor, grid: VoxelGrid
 ) -> None:
     """Benchmark mean-pooling voxelization on 100k points."""
     benchmark(
-        voxelize,
+        mean_cluster_grid,
         points_xyz,
         points_xyz,
-        voxel_grid,
-        cluster_type=VoxelizationType.POOL,
+        list(grid.grid_size),
     )

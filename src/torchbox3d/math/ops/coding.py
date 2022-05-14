@@ -10,8 +10,8 @@ from torch import Tensor
 from torchbox3d.math.linalg.lie.SO3 import quat_to_yaw, yaw_to_quat
 from torchbox3d.math.ops.index import mgrid
 from torchbox3d.structures.cuboids import Cuboids
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.outputs import TaskOutputs
-from torchbox3d.structuresgrid import RegularGrid
 
 T = TypeVar("T")
 

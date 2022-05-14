@@ -14,8 +14,8 @@ from torch import Tensor
 
 from torchbox3d.math.linalg.lie.SO3 import quat_to_mat
 from torchbox3d.rendering.ops.shaders import polygon
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.meta import TensorStruct
-from torchbox3d.structuresgrid import RegularGrid
 
 
 @dataclass

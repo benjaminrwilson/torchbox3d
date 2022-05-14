@@ -18,21 +18,47 @@ class ClusterType(str, Enum):
     MEAN = "MEAN"
 
 
+def mean_cluster_grid(
+    indices: Tensor,
+    values: Tensor,
+    grid_size: List[int],
+) -> Tuple[Tensor, Tensor, Tensor]:
+    indices, values, counts = _mean_cluster_grid_kernel(
+        indices, values, grid_size
+    )
+    return indices, values, counts
+
+
+def concatenate_cluster_grid(
+    indices: Tensor,
+    values: Tensor,
+    grid_size: List[int],
+    max_num_values: int = 20,
+) -> Tuple[Tensor, Tensor, Tensor]:
+    indices, values, counts = _concatenate_cluster_grid_kernel(
+        indices,
+        values,
+        grid_size,
+        max_num_values=max_num_values,
+    )
+    return indices, values, counts
+
+
 @torch.jit.script
-def mean_cluster(
-    pos: Tensor, values: Tensor, grid_size: List[int]
+def _mean_cluster_grid_kernel(
+    indices: Tensor, values: Tensor, grid_size: List[int]
 ) -> Tuple[Tensor, Tensor, Tensor]:
     """Apply a pooling operation on a voxel grid.
 
     Args:
-        pos: (N,3) Spatial positions.
+        indices: (N,3) Spatial indices.
         values: (N,F) Spatial values.
         size: (3,) Length, width, and height of the grid.
 
     Returns:
         The binned voxel coordinates, features, and counts after pooling.
     """
-    raveled_indices = ravel_multi_index(pos, grid_size)
+    raveled_indices = ravel_multi_index(indices, grid_size)
     permutation_sorted = torch.argsort(raveled_indices)
 
     raveled_indices = raveled_indices[permutation_sorted]
@@ -76,11 +102,11 @@ def mean_cluster(
 
 
 @torch.jit.script
-def concatenate_cluster(
-    pos: Tensor,
+def _concatenate_cluster_grid_kernel(
+    indices: Tensor,
     values: Tensor,
     grid_size: List[int],
-    max_num_pts: int = 20,
+    max_num_values: int,
 ) -> Tuple[Tensor, Tensor, Tensor]:
     """Places a set of points in R^3 into a voxel grid.
 
@@ -89,19 +115,19 @@ def concatenate_cluster(
     size defined by max_num_pts.
 
     Args:
-        pos: (N,3) Coordinates (x,y,z).
-        values: (N,F) Features associated with the points.
-        voxel_grid: Voxel grid metadata.
-        max_num_pts: Max number of points per bin location.
+        indices: (N,3) Spatial indices.
+        values: (N,F) Spatial values.
+        size: (3,) Length, width, and height of the grid.
+        max_num_values: Max number of values per index location.
 
     Returns:
         Voxel indices, values, counts, and cropping mask.
     """
-    raveled_indices = ravel_multi_index(pos, grid_size)
+    raveled_indices = ravel_multi_index(indices, grid_size)
 
     # Find indices which make bucket indices contiguous.
     permutation_sorted = torch.argsort(raveled_indices)
-    pos = pos[permutation_sorted]
+    indices = indices[permutation_sorted]
     raveled_indices = raveled_indices[permutation_sorted]
     values = values[permutation_sorted]
 
@@ -116,7 +142,7 @@ def concatenate_cluster(
     # Instead of applying an information destroying reduction,
     # we concatenate the features until we reach a maximum size.
     voxelized_values = torch.zeros(
-        (len(output), max_num_pts, values.shape[-1])
+        (len(output), max_num_values, values.shape[-1])
     )
 
     # Concatenating collisions requires counting how many collisions there are.
@@ -132,7 +158,7 @@ def concatenate_cluster(
         return_counts=True,
     )
     offset, _, _ = out_inv
-    is_valid = index < max_num_pts
+    is_valid = index < max_num_values
 
     inverse_indices = inverse_indices[is_valid]
     index = index[is_valid].long()

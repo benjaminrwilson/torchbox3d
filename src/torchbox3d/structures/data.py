@@ -8,10 +8,10 @@ from typing import Tuple
 from torch import Tensor
 
 from torchbox3d.structures.cuboids import Cuboids
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.meta import TensorStruct
 from torchbox3d.structures.sparse_tensor import SparseTensor
 from torchbox3d.structures.targets import GridTargets
-from torchbox3d.structuresgrid import RegularGrid
 
 
 @dataclass
@@ -19,7 +19,7 @@ class Data(TensorStruct):
     """General class for manipulating 3D data and associated annotations."""
 
     cuboids: Cuboids
-    pos: Tensor
+    coordinates_m: Tensor
     values: Tensor
     uuids: Tuple[str, ...]
 

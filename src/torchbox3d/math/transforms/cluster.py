@@ -8,8 +8,8 @@ import torch
 
 from torchbox3d.math.ops.cluster import ClusterType
 from torchbox3d.structures.data import Data, RegularGridData
+from torchbox3d.structures.grid import BEVGrid, VoxelGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
-from torchbox3d.structuresgrid import BEVGrid, VoxelGrid
 
 
 @dataclass
@@ -47,9 +47,11 @@ class Voxelize:
             The data with voxelized points.
         """
         x.grid = self.grid
-        x.values = torch.cat((x.pos, x.values), dim=-1)
+        x.values = torch.cat((x.coordinates_m, x.values), dim=-1)
 
-        indices, values, _ = x.grid.cluster(x.pos, x.values, self.cluster_type)
+        indices, values, _ = x.grid.cluster(
+            x.coordinates_m, x.values, self.cluster_type
+        )
         x.voxels = SparseTensor(values=values, indices=indices)
         return x
 
@@ -72,7 +74,7 @@ class Pillarize:
     cluster_type: ClusterType
 
     @cached_property
-    def bev_grid(self) -> BEVGrid:
+    def grid(self) -> BEVGrid:
         """Return the voxel grid associated with the transformation."""
         return BEVGrid(
             min_world_coordinates_m=self.min_world_coordinates_m,
@@ -89,12 +91,14 @@ class Pillarize:
         Returns:
             The data with voxelized points.
         """
-        x.grid = self.bev_grid
-        x.values = torch.cat((x.pos, x.values), dim=-1)
-
-        pos_cropped, mask = x.grid.crop_points(x.pos)
-        indices, values, _ = x.grid.cluster(
-            pos_cropped[..., :2], x.values[mask], self.cluster_type
+        grid = self.grid
+        values = torch.cat((x.coordinates_m, x.values), dim=-1)
+        indices, mask = self.grid.transform_from(x.coordinates_m)
+        indices, values, counts = self.grid.cluster(
+            indices[mask], values[mask], cluster_type=ClusterType.CONCATENATE
         )
+
+        x.grid = grid
+        x.values = values
         x.voxels = SparseTensor(values=values, indices=indices)
         return x

@@ -6,7 +6,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchbox3d.structuresgrid import RegularGrid
+from torchbox3d.structures.grid import RegularGrid
 
 
 @pytest.mark.parametrize(
@@ -43,17 +43,17 @@ from torchbox3d.structuresgrid import RegularGrid
     ],
     ids=["3d_0", "3d_odd"],
 )
-def test_RegularGrid(
+def test_regular_grid(
     RegularGrid: RegularGrid,
     points: Tensor,
-    dims: Tensor,
+    grid_size: Tensor,
     range_m: Tensor,
     scaled_points: Tensor,
     quantized_points: Tensor,
     grid_coords: Tensor,
 ) -> None:
     """Unit tests for the RegularGrid class."""
-    assert RegularGrid.dims == dims
+    assert RegularGrid.grid_size == grid_size
     assert RegularGrid.range_m == range_m
 
     torch.testing.assert_allclose(

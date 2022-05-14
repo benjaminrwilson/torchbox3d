@@ -78,5 +78,5 @@ def read_sweep_data(
 
     pos = lidar[..., :3]
     x = lidar[..., 3:]
-    datum = Data(pos=pos, values=x, cuboids=cuboids, uuids=uuid)
+    datum = Data(coordinates_m=pos, values=x, cuboids=cuboids, uuids=uuid)
     return datum

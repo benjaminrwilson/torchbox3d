@@ -6,7 +6,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchbox3d.math.ops.pool import unique_indices, voxel_pool
+from torchbox3d.math.ops.cluster import mean_cluster_grid, unique_indices
 
 
 def _construct_dummy_voxels() -> Dict[str, Tensor]:
@@ -33,7 +33,7 @@ def test_voxel_pool() -> None:
     size = [6, 6, 6]
 
     # Apply mean pooling.
-    indices, values, _ = voxel_pool(indices, values, size)
+    indices, values, _ = mean_cluster_grid(indices, values, size)
 
     # Declare expected indices and values.
     indices_expected = torch.as_tensor(
