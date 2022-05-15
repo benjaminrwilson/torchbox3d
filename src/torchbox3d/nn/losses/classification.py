@@ -68,7 +68,7 @@ def focal_loss(
     npos = mask.flatten(1, -1).sum(dim=-1)
     x = x.log_() * (1 - x) ** 2
 
-    positive_loss = torch.zeros((len(npos), int(npos.max())))
+    positive_loss = torch.zeros((len(npos), int(npos.max())), device=x.device)
     batch_lengths: List[int] = npos.tolist()
     for i, loss in enumerate(x.split(batch_lengths)):
         positive_loss[i, : len(loss)] = loss

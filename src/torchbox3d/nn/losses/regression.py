@@ -53,7 +53,7 @@ class RegressionLoss(LightningModule):
 
         loss = self.loss(src, targets)
         regression_loss = torch.zeros(
-            (len(npos), int(npos.max()), mask.shape[1])
+            (len(npos), int(npos.max()), mask.shape[1]), device=src.device
         )
 
         batch_lengths: List[int] = npos.tolist()
