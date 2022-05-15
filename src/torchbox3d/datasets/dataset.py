@@ -17,15 +17,14 @@ class Dataset:
     """A dataset metaclass.
 
     Args:
-        dataset_dir:
-        name:
-        splits:
-        classes:
+        dataset_dir: Dataset directory.
+        name: Name of the dataset.
+        split: Split name for the dataset.
+        classes: List of valid classes for targets.
     """
 
     dataset_dir: Path
     name: str
-
     split: str
     classes: Optional[Tuple[str, ...]] = None
 
