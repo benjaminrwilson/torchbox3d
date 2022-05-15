@@ -2,9 +2,12 @@
 
 from dataclasses import dataclass
 
+import torch
 from pytorch_lightning.core.lightning import LightningModule
 from torch import Tensor
 from torch.nn.modules.loss import L1Loss
+
+from torchbox3d.math.ops.index import ravel_multi_index
 
 
 @dataclass(unsafe_hash=True)
@@ -34,7 +37,18 @@ class RegressionLoss(LightningModule):
         Returns:
             (B,C,H,W) Regression losses.
         """
-        npos = mask.sum(dim=[1, 2, 3], keepdim=True)
-        loss = self.loss(src, targets) / (npos + self.eps)
-        reduced_loss: Tensor = loss.sum(dim=[2, 3])
+        # npos = mask.sum(dim=[1, 2, 3], keepdim=True)
+
+        mask = mask.repeat_interleave(src.shape[1], dim=1)
+        indices = ravel_multi_index(mask.nonzero(), shape=list(mask.shape))
+        src = (
+            src.flatten().gather(dim=-1, index=indices).view(-1, src.shape[1])
+        )
+        targets = (
+            targets.flatten()
+            .gather(dim=-1, index=indices)
+            .view(-1, targets.shape[1])
+        )
+        loss = self.loss(src, targets) / (targets.shape[0] + self.eps)
+        reduced_loss: Tensor = loss.sum(dim=0)
         return reduced_loss

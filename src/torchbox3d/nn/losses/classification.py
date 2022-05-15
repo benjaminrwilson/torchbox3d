@@ -9,6 +9,8 @@ import torch
 from pytorch_lightning.core.lightning import LightningModule
 from torch import Tensor
 
+from torchbox3d.math.ops.index import ravel_multi_index
+
 
 @dataclass(unsafe_hash=True)
 class FocalLoss(LightningModule):
@@ -58,12 +60,13 @@ def focal_loss(
         (B,) Positive loss and (B,) negative loss.
     """
     neg_loss = (1 - x).log_() * (x**2) * (1 - y) ** 4
-
     x = torch.gather(x, dim=1, index=task_offsets)
-    pos_loss = x.log_() * (1 - x) ** 2 * mask
+    indices = ravel_multi_index(mask.nonzero(), shape=list(mask.shape))
+    x = x.flatten().gather(dim=-1, index=indices)
+    pos_loss = x.log_() * (1 - x) ** 2
 
     dim = [1, 2, 3]
     npos = torch.clamp(mask.sum(dim=dim), min=1)
     neg_loss = -torch.sum(neg_loss, dim=dim) / npos
-    pos_loss = -torch.sum(pos_loss, dim=dim) / npos
+    pos_loss = -torch.sum(pos_loss) / npos
     return pos_loss, neg_loss
