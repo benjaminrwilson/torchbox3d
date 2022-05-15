@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import List, Tuple
 
 import torch
 from pytorch_lightning.core.lightning import LightningModule
@@ -69,7 +69,8 @@ def focal_loss(
     x = x.log_() * (1 - x) ** 2
 
     positive_loss = torch.zeros((len(npos), int(npos.max())))
-    for i, loss in enumerate(x.split(npos.tolist())):
+    batch_lengths: List[int] = npos.tolist()
+    for i, loss in enumerate(x.split(batch_lengths)):
         positive_loss[i, : len(loss)] = loss
 
     dim = [1, 2, 3]

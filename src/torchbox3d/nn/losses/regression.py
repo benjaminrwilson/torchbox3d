@@ -1,6 +1,7 @@
 """Regression losses."""
 
 from dataclasses import dataclass
+from typing import List
 
 import torch
 from pytorch_lightning.core.lightning import LightningModule
@@ -54,7 +55,9 @@ class RegressionLoss(LightningModule):
         regression_loss = torch.zeros(
             (len(npos), int(npos.max()), mask.shape[1])
         )
-        for i, reg_loss in enumerate(loss.split(npos.tolist())):
+
+        batch_lengths: List[int] = npos.tolist()
+        for i, reg_loss in enumerate(loss.split(batch_lengths)):
             regression_loss[i, : len(reg_loss)] = reg_loss
 
         reduced_loss: Tensor = regression_loss.sum(dim=1)
