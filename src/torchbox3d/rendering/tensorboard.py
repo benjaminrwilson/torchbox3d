@@ -17,8 +17,7 @@ from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.outputs import NetworkOutputs
 
 
-# @rank_zero_only
-@profile
+@rank_zero_only
 def to_tensorboard(
     dts: Cuboids,
     gts: RegularGridData,
@@ -37,7 +36,10 @@ def to_tensorboard(
         return
 
     B = int(gts.voxels.C[..., -1].max().item()) + 1
-    size = gts.grid.grid_size + (B, 3)
+    size = gts.grid.grid_size
+    if len(size) == 2:
+        size += (1,)
+    size = size + (B, 3)
     grid = torch.sparse_coo_tensor(
         indices=gts.voxels.C.mT, values=gts.voxels.F[..., :3], size=size
     )

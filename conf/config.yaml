@@ -5,7 +5,7 @@
 ##########################################################################################################
 
 defaults:
-  - model: centerpoint_sparse_voxelnet_50x50m.yaml # Model for experiment.
+  - model: centerpoint_point_pillars_50x50m.yaml # Model for experiment.
   - dataset: av2  # Dataset for experiment.
   - _self_
 
@@ -38,17 +38,17 @@ trainer:
   ########################################################################################################
 
   # check_val_every_n_epoch: 1
-  limit_train_batches: 0.001
-  limit_val_batches: 0.001
+  # limit_train_batches: 0.001
+  # limit_val_batches: 0.001
   num_sanity_val_steps: 0
-  # overfit_batches: 1
+  overfit_batches: 1
   # val_check_interval: 0.1
 
 ##########################################################################################################
 # Hydra Configuration / Logging                                                                          #
 ##########################################################################################################
 
-dst_dir: experiments  # Dest
+dst_dir: experiments  # Destination directory.
 src_dir: ${oc.env:HOME}/data/datasets/${dataset.name}/sensor  # Source directory for data.
 
 hydra:
