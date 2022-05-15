@@ -192,8 +192,8 @@ class CenterPoint(Detector):
         )
         return cuboids
 
-    def validation_epoch_end(
-        self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]
+    def validation_epoch_end(  # type: ignore[override]
+        self, outputs: List[Dict[str, Union[Tuple[str, ...], Cuboids]]]
     ) -> None:
         """Run validation epoch end."""
         if self.trainer is None:

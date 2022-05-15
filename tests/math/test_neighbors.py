@@ -7,11 +7,7 @@ import torch
 from torch import Tensor
 
 from torchbox3d.math.conversions import voxelize
-from torchbox3d.math.ops.cluster import (
-    ClusterType,
-    concatenate_cluster_grid,
-    mean_cluster_grid,
-)
+from torchbox3d.math.ops.cluster import ClusterType, cluster_grid
 from torchbox3d.structures.grid import BEVGrid, RegularGrid, VoxelGrid
 
 
@@ -286,7 +282,6 @@ def test_voxelize_concatenate_kernel(
         max_num_values=2,
     )
 
-    breakpoint()
     torch.testing.assert_allclose(indices, indices_)
     torch.testing.assert_allclose(values, values_)
     torch.testing.assert_allclose(counts, counts_)
@@ -311,10 +306,11 @@ def test_benchmark_voxelize_concatenate(
 ) -> None:
     """Benchmark concatenate kernel with 100k points."""
     benchmark(
-        concatenate_cluster_grid,
+        cluster_grid,
         points_xyz,
         points_xyz,
         list(grid.grid_size),
+        cluster_type=ClusterType.CONCATENATE,
     )
 
 
@@ -348,8 +344,9 @@ def test_benchmark_voxelize_pool(
 ) -> None:
     """Benchmark mean-pooling voxelization on 100k points."""
     benchmark(
-        mean_cluster_grid,
+        cluster_grid,
         points_xyz,
         points_xyz,
         list(grid.grid_size),
+        cluster_type=ClusterType.MEAN,
     )

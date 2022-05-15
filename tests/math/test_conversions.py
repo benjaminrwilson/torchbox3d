@@ -60,7 +60,7 @@ def test_sph_to_cart() -> None:
 )
 def test_sweep_to_bev(points_xyz: Tensor, grid: RegularGrid) -> None:
     """Unit test for converting a Cartesian sweep to a BEV image."""
-    bev = grid.sweep_to_bev(points_xyz)
+    bev = sweep_to_bev(points_xyz)
     bev = bev * 255.0
 
     with NamedTemporaryFile("w") as f:
