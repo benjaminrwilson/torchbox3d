@@ -17,8 +17,8 @@ class Voxelize:
     """Construct a voxelization transformation.
 
     Args:
-        min_world_coordinates_m: (3,) Minimum range along the x,y,z axes in meters.
-        max_world_coordinates_m: (3,) Maximum range along the x,y,z axes in meters.
+        min_world_coordinates_m: (3,) Minimum coordinates in meters.
+        max_world_coordinates_m: (3,) Maximum coordinates in meters.
         delta_m_per_cell: (3,) Ratio of meters to cell in meters.
         cluster_type: Cluster type used in the transformation.
     """
@@ -63,8 +63,8 @@ class Pillarize:
     """Construct a pillarize transformation.
 
     Args:
-        min_world_coordinates_m: (2,) Minimum range along the x,y axes in meters.
-        max_world_coordinates_m: (2,) Maximum range along the x,y axes in meters.
+        min_world_coordinates_m: (2,) Minimum coordinates in meters.
+        max_world_coordinates_m: (2,) Maximum coordinates in meters.
         delta_m_per_cell: (2,) Ratio of meters to cell in meters.
         cluster_type: Cluster type used in the transformation
             (e.g., pooling).

@@ -10,7 +10,13 @@ from torchbox3d.structures.grid import RegularGrid
 
 
 @pytest.mark.parametrize(
-    "RegularGrid,points,dims,range_m,scaled_points,quantized_points,grid_coords",
+    "RegularGrid,"
+    "points,"
+    "dims,"
+    "range_m,"
+    "scaled_points,"
+    "quantized_points,"
+    "grid_coords,",
     [
         pytest.param(
             RegularGrid(

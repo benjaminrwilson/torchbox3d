@@ -17,7 +17,8 @@ from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.outputs import NetworkOutputs
 
 
-@rank_zero_only
+# @rank_zero_only
+@profile
 def to_tensorboard(
     dts: Cuboids,
     gts: RegularGridData,
@@ -54,8 +55,8 @@ def to_tensorboard(
     dts_list = dts.cuboid_list()
     selected_predictions = dts_list[0]
 
-    # Only show 100 predictions for speed.
-    _, indices = selected_predictions.scores.topk(k=100, dim=0)
+    # Only show 50 predictions for speed.
+    _, indices = selected_predictions.scores.topk(k=50, dim=0)
     selected_predictions = selected_predictions[indices.flatten()]
     if len(selected_predictions) > 0:
         bev = selected_predictions.draw_on_bev(gts.grid, bev)

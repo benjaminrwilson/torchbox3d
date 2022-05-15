@@ -32,13 +32,14 @@ class RegularGrid:
 
     def __post_init__(self) -> None:
         """Validate the NDGrid sizes."""
-        D_min = len(self.min_world_coordinates_m)
-        D_max = len(self.max_world_coordinates_m)
-        D_res = len(self.delta_m_per_cell)
+        d_min = len(self.min_world_coordinates_m)
+        d_max = len(self.max_world_coordinates_m)
+        d_delta = len(self.delta_m_per_cell)
 
-        if D_min != D_max and D_max != D_res:
+        if d_min != d_max and d_max != d_delta:
             raise ValueError(
-                "`min_world_coordinates_m`, `max_world_coordinates_m` and `delta_m_per_cell` "
+                "`min_world_coordinates_m`, `max_world_coordinates_m` "
+                "and `delta_m_per_cell` "
                 "must have the same dimension!"
             )
 

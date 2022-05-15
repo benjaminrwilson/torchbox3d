@@ -20,8 +20,8 @@ class SparseVoxelNet(LightningModule):
     Args:
         dim_in: Dimension of the input features.
         delta_m_per_cell: (3,) Ratio of meters to cell in meters.
-        min_world_coordinates_m: (3,) Minimum range along the x,y,z axes in meters.
-        max_world_coordinates_m: (3,) Maximum range along the x,y,z axes in meters.
+        min_world_coordinates_m: (3,) Minimum coordinates in meters.
+        max_world_coordinates_m: (3,) Maximum coordinates in meters.
         cluster_type: Voxelization type used in the transformation.
     """
 
