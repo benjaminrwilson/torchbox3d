@@ -45,15 +45,15 @@ def cluster_grid(
 def _mean_cluster_grid_kernel(
     indices: Tensor, values: Tensor, grid_size: List[int]
 ) -> Tuple[Tensor, Tensor, Tensor]:
-    """Apply a pooling operation on a voxel grid.
+    """Apply a clustering operation on a grid.
 
     Args:
         indices: (N,3) Spatial indices.
         values: (N,F) Spatial values.
-        size: (3,) Length, width, and height of the grid.
+        grid_size: (3,) Length, width, and height of the grid.
 
     Returns:
-        The binned voxel coordinates, features, and counts after pooling.
+        The spatial indices, features, and counts after clustering.
     """
     raveled_indices = ravel_multi_index(indices, grid_size)
     permutation_sorted = torch.argsort(raveled_indices)
@@ -105,20 +105,20 @@ def _concatenate_cluster_grid_kernel(
     grid_size: List[int],
     max_num_values: int,
 ) -> Tuple[Tensor, Tensor, Tensor]:
-    """Places a set of points in R^3 into a voxel grid.
+    """Cluster a set of values into spatial indices.
 
-    NOTE: This will not pool the points that fall into a voxel bin. Instead,
+    NOTE: This will not pool the points that fall into a bin. Instead,
     this function will concatenate the points until they exceed a maximium
     size defined by max_num_pts.
 
     Args:
         indices: (N,3) Spatial indices.
         values: (N,F) Spatial values.
-        size: (3,) Length, width, and height of the grid.
+        grid_size: (3,) Length, width, and height of the grid.
         max_num_values: Max number of values per index location.
 
     Returns:
-        Voxel indices, values, counts, and cropping mask.
+        The spatial indices, values, counts, and cropping mask.
     """
     raveled_indices = ravel_multi_index(indices, grid_size)
 
