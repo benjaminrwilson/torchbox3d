@@ -37,13 +37,18 @@ def to_tensorboard(
 
     B = int(gts.voxels.C[..., -1].max().item()) + 1
     size = gts.grid.grid_size
-    if len(size) == 2:
-        size += (1,)
     size = size + (B, 3)
+
+    is_pillars = gts.voxels.F.ndim == 3
+    if is_pillars:
+        gts.voxels.F = gts.voxels.F.sum(dim=1)
+
     grid = torch.sparse_coo_tensor(
         indices=gts.voxels.C.mT, values=gts.voxels.F[..., :3], size=size
     )
-    grid = torch.sparse.sum(grid, dim=2)
+
+    if not is_pillars:
+        grid = torch.sparse.sum(grid, dim=2)
     bev = (
         grid.to_dense()
         .permute(2, 3, 0, 1)[0][2:3]

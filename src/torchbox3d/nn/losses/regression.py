@@ -51,4 +51,4 @@ class RegressionLoss(LightningModule):
         )
         loss = self.loss(src, targets) / (targets.shape[0] + self.eps)
         reduced_loss: Tensor = loss.sum(dim=0)
-        return reduced_loss
+        return reduced_loss[None]

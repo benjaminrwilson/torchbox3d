@@ -69,4 +69,4 @@ def focal_loss(
     npos = torch.clamp(mask.sum(dim=dim), min=1)
     neg_loss = -torch.sum(neg_loss, dim=dim) / npos
     pos_loss = -torch.sum(pos_loss) / npos
-    return pos_loss, neg_loss
+    return pos_loss[None], neg_loss[None]
