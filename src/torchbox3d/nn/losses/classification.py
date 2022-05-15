@@ -59,14 +59,21 @@ def focal_loss(
     Returns:
         (B,) Positive loss and (B,) negative loss.
     """
-    neg_loss = (1 - x).log_() * (x**2) * (1 - y) ** 4
-    x = torch.gather(x, dim=1, index=task_offsets)
-    indices = ravel_multi_index(mask.nonzero(), shape=list(mask.shape))
-    x = x.flatten().gather(dim=-1, index=indices)
-    pos_loss = x.log_() * (1 - x) ** 2
+    index = ravel_multi_index(mask.nonzero(), shape=list(mask.shape))
+
+    negative_loss = (1 - x).log_() * (x**2) * (1 - y) ** 4
+    x = x.gather(dim=1, index=task_offsets)
+    x = x.flatten().gather(dim=-1, index=index)
+
+    npos = mask.flatten(1, -1).sum(dim=-1)
+    x = x.log_() * (1 - x) ** 2
+
+    positive_loss = torch.zeros((len(npos), int(npos.max())))
+    for i, loss in enumerate(x.split(npos.tolist())):
+        positive_loss[i, : len(loss)] = loss
 
     dim = [1, 2, 3]
     npos = torch.clamp(mask.sum(dim=dim), min=1)
-    neg_loss = -torch.sum(neg_loss, dim=dim) / npos
-    pos_loss = -torch.sum(pos_loss) / npos
-    return pos_loss[None], neg_loss[None]
+    negative_loss = -torch.sum(negative_loss, dim=dim) / npos
+    positive_loss = -torch.sum(positive_loss, dim=-1) / npos
+    return positive_loss, negative_loss

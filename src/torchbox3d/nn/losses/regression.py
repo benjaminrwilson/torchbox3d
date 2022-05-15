@@ -37,7 +37,7 @@ class RegressionLoss(LightningModule):
         Returns:
             (B,C,H,W) Regression losses.
         """
-        # npos = mask.sum(dim=[1, 2, 3], keepdim=True)
+        npos = mask.sum(dim=[1, 2, 3])
 
         mask = mask.repeat_interleave(src.shape[1], dim=1)
         indices = ravel_multi_index(mask.nonzero(), shape=list(mask.shape))
@@ -49,6 +49,13 @@ class RegressionLoss(LightningModule):
             .gather(dim=-1, index=indices)
             .view(-1, targets.shape[1])
         )
-        loss = self.loss(src, targets) / (targets.shape[0] + self.eps)
-        reduced_loss: Tensor = loss.sum(dim=0)
-        return reduced_loss[None]
+
+        loss = self.loss(src, targets)
+        regression_loss = torch.zeros(
+            (len(npos), int(npos.max()), mask.shape[1])
+        )
+        for i, reg_loss in enumerate(loss.split(npos.tolist())):
+            regression_loss[i, : len(reg_loss)] = reg_loss
+
+        reduced_loss: Tensor = regression_loss.sum(dim=1)
+        return reduced_loss
