@@ -35,18 +35,12 @@ def to_tensorboard(
     if trainer.state.stage == RunningStage.SANITY_CHECKING:
         return
 
-    batch_index = gts.voxels.C[..., -1]
-    # outputs: Tuple[Tensor, Tensor] = batch_index.unique_consecutive(
-    #     return_counts=True
-    # )
-    # _, counts = outputs
-    # counts_list: List[int] = counts.tolist()
-    # voxel_list = gts.voxels.C[..., :3].split(counts_list)
-
+    B = int(gts.voxels.C[..., -1].max().item()) + 1
+    size = gts.grid.grid_size + (B, 3)
     grid = torch.sparse_coo_tensor(
-        indices=gts.voxels.C.mT, values=gts.voxels.F[..., :3]
+        indices=gts.voxels.C.mT, values=gts.voxels.F[..., :3], size=size
     )
-    grid = torch.sparse.sum(grid, dim=3)
+    grid = torch.sparse.sum(grid, dim=2)
     bev = (
         grid.to_dense()
         .permute(2, 3, 0, 1)[0][2:3]
@@ -54,8 +48,6 @@ def to_tensorboard(
         .repeat_interleave(3, dim=0)
     )
 
-    # bev = sweep_to_bev(voxel_list[0], gts.grid)[0]
-    # bev = bev.repeat(3, 1, 1)
     bev = denormalize_pixel_intensities(bev)
     _draw_cuboids(gts.cuboids, bev, gts.grid, (0, 0, 255))
 

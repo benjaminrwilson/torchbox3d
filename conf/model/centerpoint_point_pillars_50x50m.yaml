@@ -122,8 +122,8 @@ arch_cfg:
     name: pointpillars
     dim_in: 4  # Number of input dimensions
     delta_m_per_cell: [0.2, 0.2]
-    min_world_coordinates_m: [-12.8, -12.8]
-    max_world_coordinates_m: [12.8, 12.8]
+    min_world_coordinates_m: [-51.2, -51.2]
+    max_world_coordinates_m: [51.2, 51.2]
     cluster_type: concatenate
 
   ##########################################################################

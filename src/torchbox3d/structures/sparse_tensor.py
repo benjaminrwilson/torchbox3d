@@ -46,9 +46,9 @@ class SparseTensor(torchsparse.SparseTensor):  # type: ignore
         indices[:, 2] = indices[:, 2].clamp(0, H - 1)
 
         dense = torch.zeros(size)
-        dense = scatter_nd(indices, self.F, size, [3, 4, 2, 0, 1]).reshape(
-            B, -1, W, L
-        )
+        dense = scatter_nd(
+            indices, self.F, list(size), [3, 4, 2, 0, 1]
+        ).reshape(B, -1, W, L)
         return dense
 
     def clone(self) -> SparseTensor:

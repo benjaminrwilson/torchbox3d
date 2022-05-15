@@ -75,7 +75,7 @@ arch_cfg:
     delta_m_per_cell: [0.1, 0.1, 0.2]
     min_world_coordinates_m: [-204.8, -204.8, -3.2]
     max_world_coordinates_m: [204.8, 204.8, 3.2]
-    cluster_type: pool
+    cluster_type: MEAN
 
   ##########################################################################
   # NECK                                                                   #

@@ -99,7 +99,7 @@ def convert_world_coordinates_to_grid(
     offset_m = torch.zeros_like(coordinates_m[0])
     offset_m[:D] = torch.as_tensor(min_world_coordinates_m[:D]).abs()
 
-    indices = (coordinates_m[..., :D] + offset_m[:D]) / delta_m_per_cell
+    indices = (coordinates_m[..., :D] + offset_m[:D]) / delta_m_per_cell[:D]
     if not align_corners:
         indices[..., :D] += 0.5
     indices = indices.long()

@@ -42,7 +42,7 @@ def train(cfg: DictConfig) -> None:
         logger.info("Using debug mode ...")
 
         cfg.num_workers = 0
-        cfg.batch_size = 2
+        cfg.batch_size = 1
         cfg.trainer.max_epochs = 1000
         if cfg.trainer.devices == "auto":
             cfg.trainer.devices = 1
