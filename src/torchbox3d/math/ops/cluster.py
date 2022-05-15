@@ -25,6 +25,21 @@ def cluster_grid(
     max_num_values: int = 1,
     cluster_type: ClusterType = ClusterType.MEAN,
 ) -> Tuple[Tensor, Tensor, Tensor]:
+    """Apply a clustering operation on a grid.
+
+    Args:
+        indices: (N,3) Spatial indices.
+        values: (N,F) Spatial values.
+        grid_size: (3,) Length, width, and height of the grid.
+        max_num_values: int = 1,
+        cluster_type: ClusterType = ClusterType.MEAN,
+
+    Returns:
+        The spatial indices, features, and counts after clustering.
+
+    Raises:
+        NotImplementedError: If the clustering type is not implemented.
+    """
     if cluster_type.upper() == ClusterType.MEAN:
         indices, values, counts = _mean_cluster_grid_kernel(
             indices, values, grid_size
@@ -37,7 +52,7 @@ def cluster_grid(
             max_num_values=max_num_values,
         )
     else:
-        raise NotImplementedError()
+        raise NotImplementedError("This clustering type is not implemented!")
     return indices, values, counts
 
 
@@ -45,7 +60,7 @@ def cluster_grid(
 def _mean_cluster_grid_kernel(
     indices: Tensor, values: Tensor, grid_size: List[int]
 ) -> Tuple[Tensor, Tensor, Tensor]:
-    """Apply a clustering operation on a grid.
+    """Apply a mean clustering operation on a grid.
 
     Args:
         indices: (N,3) Spatial indices.
@@ -105,7 +120,7 @@ def _concatenate_cluster_grid_kernel(
     grid_size: List[int],
     max_num_values: int,
 ) -> Tuple[Tensor, Tensor, Tensor]:
-    """Cluster a set of values into spatial indices.
+    """Apply a concatenation clustering operation on a grid.
 
     NOTE: This will not pool the points that fall into a bin. Instead,
     this function will concatenate the points until they exceed a maximium
