@@ -9,7 +9,7 @@
 # neck - 2D processing portion following 3D feature extraction
 # head - Classification / regression, etc. This portion of the network is task specific.
 
-name: "centerpoint"
+name: centerpoint
 
 arch_cfg:
   _target_: torchbox3d.nn.arch.centerpoint.CenterPoint
@@ -70,7 +70,7 @@ arch_cfg:
 
   backbone_cfg:
     _target_: torchbox3d.nn.backbones.sparse_voxelnet.SparseVoxelNet
-    name: "sparse-voxelnet"
+    name: sparse-voxelnet
     dim_in: 4  # Number of input dimensions
     delta_m_per_cell: [0.1, 0.1, 0.2]
     min_world_coordinates_m: [-51.2, -51.2, -3.2]
