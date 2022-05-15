@@ -13,13 +13,13 @@ defaults:
 # DEBUGGING FLAG                                                                                         #
 ##########################################################################################################
 
-debug: True  # For model debugging.
+debug: False  # For model debugging.
 
 ##########################################################################################################
 # Hyperparameter Configuration                                                                           #
 ##########################################################################################################
 
-batch_size: 2 # Batch size of dataloader.
+batch_size: 1 # Batch size of dataloader.
 lr: 1e-3  # Learning rate.
 num_workers: auto  # Number of dataloader workers.
 
@@ -38,8 +38,8 @@ trainer:
   ########################################################################################################
 
   # check_val_every_n_epoch: 1
-  # limit_train_batches: 0.1
-  # limit_val_batches: 0.1
+  limit_train_batches: 0.001
+  limit_val_batches: 0.001
   num_sanity_val_steps: 0
   # overfit_batches: 1
   # val_check_interval: 0.1

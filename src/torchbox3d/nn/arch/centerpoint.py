@@ -264,8 +264,7 @@ class CenterPoint(Detector):
             cfg = DetectionCfg(
                 dataset_dir=dataset_dir,
                 categories=tuple(sorted(categories)),
-                split=split,
-                max_world_coordinates_m=200.0,
+                max_range_m=150.0,
                 eval_only_roi_instances=True,
             )
 
