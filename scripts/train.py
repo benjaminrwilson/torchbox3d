@@ -6,6 +6,7 @@ from typing import Final, Optional, cast
 
 import hydra
 import torch
+import torch.multiprocessing as mp
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from pytorch_lightning.callbacks import LearningRateMonitor
@@ -118,8 +119,6 @@ def get_model(
 def get_datamodule(cfg: DictConfig) -> LightningDataModule:
     """Get the datamodule for training."""
     if cfg.num_workers == "auto":
-        import torch.multiprocessing as mp
-
         cfg.num_workers = mp.cpu_count()
         if torch.cuda.is_available():
             cfg.num_workers //= torch.cuda.device_count()
