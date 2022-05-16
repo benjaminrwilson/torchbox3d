@@ -18,7 +18,7 @@ from av2.utils.io import read_feather
 from omegaconf import MISSING
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import Tensor
 
 from torchbox3d.datasets.argoverse.constants import (
