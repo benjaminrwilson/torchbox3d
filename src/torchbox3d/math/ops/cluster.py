@@ -28,8 +28,8 @@ def cluster_grid(
     """Apply a clustering operation on a grid.
 
     Args:
-        indices: (N,3) Spatial indices.
-        values: (N,F) Spatial values.
+        indices: (N,3) Grid indices.
+        values: (N,F) Grid values.
         grid_size: (3,) Length, width, and height of the grid.
         max_num_values: int = 1,
         cluster_type: ClusterType = ClusterType.MEAN,

@@ -44,7 +44,7 @@ class RegularGrid:
 
     @property
     def num_dimensions(self) -> int:
-        """Return the dimension of the grid."""
+        """Return number of dimensions in the grid."""
         return len(self.min_world_coordinates_m)
 
     @cached_property
@@ -52,9 +52,13 @@ class RegularGrid:
         """Return the size of the grid."""
         min_world_coordinates_m = torch.as_tensor(self.min_world_coordinates_m)
         max_world_coordinates_m = torch.as_tensor(self.max_world_coordinates_m)
-        range_m = max_world_coordinates_m - min_world_coordinates_m
-        dims: List[int] = self.scale_and_center_coordinates(range_m).tolist()
-        return tuple(dims)
+        world_coordinates_range_m = (
+            max_world_coordinates_m - min_world_coordinates_m
+        )
+        dimensions: List[int] = self.scale_and_center_coordinates(
+            world_coordinates_range_m
+        ).tolist()
+        return tuple(dimensions)
 
     def scale_and_center_coordinates(
         self, coordinates_m: Tensor, align_corners: bool = True
@@ -63,6 +67,7 @@ class RegularGrid:
 
         Args:
             coordinates_m: (N,D) Coordinates in meters.
+            align_corners: Boolean flag to treat indices as grid vertices.
 
         Returns:
             The scaled, centered positions.
@@ -91,7 +96,7 @@ class RegularGrid:
             coordinates_m: (N,D) Coordinates in meters.
 
         Returns:
-            (N,D) list of quantized grid coordinates.
+            The grid indices and the cropped coordinate mask.
         """
         indices, mask = convert_world_coordinates_to_grid(
             coordinates_m,
@@ -130,12 +135,12 @@ class RegularGrid:
         """Cluster a set of values by their respective positions.
 
         Args:
-            indices: (N,3) Spatial positions in meters.
-            values: (N,F) Values associated with each spatial position.
+            indices: (N,D) Grid indices.
+            values: (N,F) Grid values.
             cluster_type: Cluster type to be applied.
 
         Returns:
-            The spatial indices, values, and counts.
+            The clustered grid indices, values, and counts.
 
         Raises:
             NotImplementedError: If the voxelization mode is not implemented.
