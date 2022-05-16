@@ -35,16 +35,16 @@ def to_tensorboard(
     if trainer.state.stage == RunningStage.SANITY_CHECKING:
         return
 
-    B = int(gts.cells.C[..., -1].max().item()) + 1
+    num_batches = int(gts.cells.indices[..., -1].max().item()) + 1
     size = gts.grid.grid_size
-    size = size + (B, 3)
+    size = size + (num_batches, 3)
 
-    is_pillars = gts.cells.F.ndim == 3
+    is_pillars = gts.cells.values.ndim == 3
     if is_pillars:
-        gts.cells.F = gts.cells.F.sum(dim=1)
+        gts.cells.values = gts.cells.values.sum(dim=1)
 
     grid = torch.sparse_coo_tensor(
-        indices=gts.cells.C.mT, values=gts.cells.F[..., :3], size=size
+        indices=gts.cells.indices.mT, values=gts.cells.values[..., :3], size=size
     )
 
     if not is_pillars:

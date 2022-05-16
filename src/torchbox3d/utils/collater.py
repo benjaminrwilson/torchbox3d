@@ -5,7 +5,6 @@ from typing import Any, DefaultDict, Dict, List, Sequence
 
 import torch
 import torch.nn.functional as F
-from torchsparse.utils.collate import sparse_collate
 
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData
@@ -36,7 +35,7 @@ def collate(data_list: Sequence[Data]) -> Data:
         elem = attr[0]
 
         # Pad with batch index.
-        if attr_name in set(["coordinates_m", "values"]):
+        if attr_name in ("coordinates_m", "values", "counts"):
             output[attr_name] = torch.cat(
                 [
                     F.pad(elem, [0, 1], "constant", i)
@@ -50,7 +49,10 @@ def collate(data_list: Sequence[Data]) -> Data:
         elif isinstance(elem, SparseTensor):
             sparse_tensor = sparse_collate(attr)
             output[attr_name] = SparseTensor(
-                values=sparse_tensor.F, indices=sparse_tensor.C
+                values=sparse_tensor.values,
+                indices=sparse_tensor.indices,
+                counts=sparse_tensor.counts,
+                stride=sparse_tensor.stride,
             )
         elif isinstance(elem, RegularGrid):
             output[attr_name] = attr[0]
@@ -64,3 +66,30 @@ def collate(data_list: Sequence[Data]) -> Data:
             raise TypeError(f"Invalid type: {type(elem)}")
     data = RegularGridData(**output)
     return data
+
+
+def sparse_collate(sparse_tensor_list: List[SparseTensor]) -> SparseTensor:
+    indices = []
+    values = []
+    counts = []
+    stride = sparse_tensor_list[0].stride
+
+    for k, sparse_tensor in enumerate(sparse_tensor_list):
+        input_size = sparse_tensor.indices.shape[0]
+        batch = torch.full(
+            (input_size, 1),
+            k,
+            device=sparse_tensor.indices.device,
+            dtype=torch.int,
+        )
+
+        indices.append(torch.cat((sparse_tensor.indices, batch), dim=1))
+        values.append(sparse_tensor.values)
+        counts.append(sparse_tensor.counts)
+
+    indices = torch.cat(indices, dim=0)
+    values = torch.cat(values, dim=0)
+    output = SparseTensor(
+        indices=indices, values=values, counts=counts, stride=stride
+    )
+    return output

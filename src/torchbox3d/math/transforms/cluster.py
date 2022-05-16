@@ -104,5 +104,7 @@ class Pillarize:
 
         grid_data.grid = self.grid
         grid_data.values = values
-        grid_data.cells = SparseTensor(values=values, indices=indices)
+        grid_data.cells = SparseTensor(
+            values=values, indices=indices, counts=counts
+        )
         return grid_data

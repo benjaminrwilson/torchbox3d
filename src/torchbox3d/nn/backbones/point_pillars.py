@@ -68,10 +68,12 @@ class PointPillars(LightningModule):
         Returns:
             A dictionary of layer names to outputs.
         """
-        indices = grid_data.cells.C.long()
-        values = grid_data.cells.F
+        indices = grid_data.cells.indices.long()
+        values = grid_data.cells.values
+        counts = grid_data.cells.counts
+
         values, _ = self.pointnet(values)
-        canvas = pillar_scatter(values, indices, grid_data.grid)
+        canvas = pillar_scatter(indices, values, counts, grid_data.grid)
 
         if self.debug:
             path = Path.home() / "code" / "bev.png"
@@ -84,13 +86,14 @@ class PointPillars(LightningModule):
 
 
 def pillar_scatter(
-    values: Tensor, indices: Tensor, grid: RegularGrid
+    indices: Tensor, values: Tensor, points_per_cell: Tensor, grid: RegularGrid
 ) -> Tensor:
     """Scatter the pillars on the BEV canvas.
 
     Args:
-        x: Input data.
         indices: Indices to emplace the input data.
+        values: Input data.
+        points_per_cell: Number of points per cell.
         grid: Voxel grid attributes.
 
     Returns:
@@ -99,7 +102,6 @@ def pillar_scatter(
     length, width = grid.grid_size[:2]
     num_batches = int(indices[..., -1].max().item() + 1)
     num_features = int(values.shape[-1])
-
     canvas: Tensor = scatter_nd(
         indices,
         src=values,
