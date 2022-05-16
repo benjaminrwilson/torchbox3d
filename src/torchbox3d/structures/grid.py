@@ -9,7 +9,7 @@ from typing import List, Tuple
 import torch
 from torch import Tensor
 
-from torchbox3d.math.conversions import convert_world_coordinates_to_grid
+from torchbox3d.math.conversions import world_to_grid_coordinates
 from torchbox3d.math.ops.cluster import ClusterType, cluster_grid
 
 
@@ -98,7 +98,7 @@ class RegularGrid:
         Returns:
             The grid indices and the cropped coordinate mask.
         """
-        indices, mask = convert_world_coordinates_to_grid(
+        indices, mask = world_to_grid_coordinates(
             coordinates_m,
             list(self.min_world_coordinates_m),
             list(self.delta_m_per_cell),

@@ -11,7 +11,7 @@ from torchbox3d.math.ops.cluster import ClusterType, cluster_grid
 
 
 @torch.jit.script
-def denormalize_pixel_intensities(tensor: Tensor) -> Tensor:
+def normalized_to_denormalized_intensities(tensor: Tensor) -> Tensor:
     """Map intensities from [0,1] -> [0,255].
 
     Args:
@@ -27,7 +27,9 @@ def denormalize_pixel_intensities(tensor: Tensor) -> Tensor:
 
 
 @torch.jit.script
-def convert_cartesian_to_spherical(coordinates_cartesian_m: Tensor) -> Tensor:
+def cartesian_to_spherical_coordinates(
+    coordinates_cartesian_m: Tensor,
+) -> Tensor:
     """Convert Cartesian coordinates to spherical coordinates.
 
     Reference:
@@ -52,7 +54,9 @@ def convert_cartesian_to_spherical(coordinates_cartesian_m: Tensor) -> Tensor:
 
 
 @torch.jit.script
-def convert_spherical_to_cartesian(coordinates_spherical: Tensor) -> Tensor:
+def spherical_to_cartesian_coordinates(
+    coordinates_spherical: Tensor,
+) -> Tensor:
     """Convert spherical coordinates to Cartesian coordinates.
 
     Reference:
@@ -79,7 +83,7 @@ def convert_spherical_to_cartesian(coordinates_spherical: Tensor) -> Tensor:
 
 
 # @torch.jit.script
-def convert_world_coordinates_to_grid(
+def world_to_grid_coordinates(
     coordinates_m: Tensor,
     min_world_coordinates_m: Union[List[float], Tensor],
     delta_m_per_cell: Union[List[float], Tensor],
@@ -154,7 +158,7 @@ def voxelize(
     Returns:
         The voxelized indices, values, and the counts per voxel.
     """
-    indices, mask = convert_world_coordinates_to_grid(
+    indices, mask = world_to_grid_coordinates(
         coordinates_m,
         min_world_coordinates_m,
         delta_m_per_cell,

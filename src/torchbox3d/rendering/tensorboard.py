@@ -10,7 +10,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from torch import Tensor
 from torchvision.utils import make_grid
 
-from torchbox3d.math.conversions import denormalize_pixel_intensities
+from torchbox3d.math.conversions import normalized_to_denormalized_intensities
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import RegularGridData
 from torchbox3d.structures.grid import RegularGrid
@@ -56,7 +56,7 @@ def to_tensorboard(
         .repeat_interleave(3, dim=0)
     )
 
-    bev = denormalize_pixel_intensities(bev)
+    bev = normalized_to_denormalized_intensities(bev)
     _draw_cuboids(gts.cuboids, bev, gts.grid, (0, 0, 255))
 
     dts_list = dts.cuboid_list()
@@ -75,7 +75,7 @@ def to_tensorboard(
     ).transpose(0, 1)
 
     heatmaps = torch.cat((heatmaps_dts, targets.scores, targets.mask), dim=1)
-    heatmaps = denormalize_pixel_intensities(heatmaps)
+    heatmaps = normalized_to_denormalized_intensities(heatmaps)
     heatmaps = heatmaps[0]
     grid = make_grid(
         heatmaps,
