@@ -10,7 +10,6 @@ import torch
 from torch import Tensor
 
 from torchbox3d.math.conversions import convert_world_coordinates_to_grid
-from torchbox3d.math.crop import crop_coordinates
 from torchbox3d.math.ops.cluster import ClusterType, cluster_grid
 
 
@@ -63,7 +62,7 @@ class RegularGrid:
         """Scale and center the positions.
 
         Args:
-            coordinates_m: (N,D) Positions in meters.
+            coordinates_m: (N,D) Coordinates in meters.
 
         Returns:
             The scaled, centered positions.
@@ -84,7 +83,7 @@ class RegularGrid:
         """Transform positions from world coordinates to grid coordinates (in meters).
 
         Args:
-            coordinates_m: (N,D) list of points.
+            coordinates_m: (N,D) Coordinates in meters.
 
         Returns:
             (N,D) list of quantized grid coordinates.
@@ -135,20 +134,6 @@ class RegularGrid:
             grid_size=list(self.grid_size),
             cluster_type=cluster_type,
         )
-
-    def crop_points(self, points: Tensor) -> Tuple[Tensor, Tensor]:
-        points, mask = crop_coordinates(
-            points,
-            list(self.min_world_coordinates_m),
-            list(self.max_world_coordinates_m),
-        )
-        return points, mask
-
-
-@dataclass
-class Grid:
-    vertices: Tensor
-    edges: Tensor
 
 
 @dataclass

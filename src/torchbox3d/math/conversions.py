@@ -84,6 +84,19 @@ def convert_world_coordinates_to_grid(
     grid_size: Union[List[int], Tensor],
     align_corners: bool = False,
 ) -> Tuple[Tensor, Tensor]:
+    """Convert world coordinates to grid coordinates.
+
+    Args:
+        coordinates_m: (N,D) Coordinates in meters.
+        min_world_coordinates_m: (D,) Minimum coordinates in meters.
+        delta_m_per_cell: (D,) Ratio of meters to cell in each dimension.
+        grid_size: (D,) Size of the grid.
+        align_corners: Boolean flag to align the world coordinates to the cell
+            centers.
+
+    Returns:
+        The grid coordinates and the cropped points mask.
+    """
     if isinstance(min_world_coordinates_m, List):
         min_world_coordinates_m = torch.as_tensor(
             min_world_coordinates_m, device=coordinates_m.device
@@ -119,6 +132,23 @@ def voxelize(
     max_num_values: int = 1,
     cluster_type: ClusterType = ClusterType.MEAN,
 ) -> Tuple[Tensor, Tensor, Tensor]:
+    """Voxelize a set of coordinates and values.
+
+    Args:
+        coordinates_m: (N,D) Coordinates in meters.
+        values: (N,F) Values at each coordinate.
+        min_world_coordinates_m: (D,) Minimum coordinates in meters.
+        delta_m_per_cell: (D,) Ratio of meters to cell in each dimension.
+        grid_size: (D,) Size of the grid.
+        align_corners: Boolean flag to align the world coordinates to the cell
+            centers.
+        max_num_values: Max number of values per cell.
+        cluster_type: Type of clustering to perform.
+
+    Returns:
+        The voxelized indices, values, and the counts per voxel.
+
+    """
     indices, mask = convert_world_coordinates_to_grid(
         coordinates_m,
         min_world_coordinates_m,

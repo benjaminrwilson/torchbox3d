@@ -52,7 +52,6 @@ def get_trainer(cfg: DictConfig) -> Trainer:
     Returns:
         Trainer: The PyTorch Lightning trainer.
     """
-
     trainer = Trainer(
         **cfg.trainer,
     )
