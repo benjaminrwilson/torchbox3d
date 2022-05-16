@@ -73,7 +73,7 @@ def focal_loss(
     )
     batch_lengths: List[int] = npos.tolist()
 
-    batch_losses: Sequence[Tensor] = torch.split(src, batch_lengths)  # type: ignore
+    batch_losses = torch.split(src, batch_lengths)  # type: ignore
     for i, loss in enumerate(batch_losses):
         positive_loss[i, : len(loss)] = loss
 
