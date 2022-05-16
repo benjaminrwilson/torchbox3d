@@ -117,7 +117,7 @@ class SplatterHeatmap:
         return cuboids, offsets, task_ids
 
     def splatter(self, grid_data: RegularGridData) -> Data:
-        """Splatter the ground truth annotations onto the xy (BEV) canvas.
+        """Splatter the ground truth annotations onto the canvas.
 
         Args:
             grid_data: Ground truth data.
@@ -168,19 +168,19 @@ class SplatterHeatmap:
                 grid_size=[length, width],
             )
 
-        perm = [0, 3, 1, 2]
+        permutation = [0, 3, 1, 2]
         offsets = scatter_nd(
             indices_tij,
             src=offsets,
             grid_shape=[num_tasks, length, width, 1],
-            permutation=perm,
+            permutation=permutation,
         )[None]
 
         mask = scatter_nd(
             indices_tij,
             torch.ones_like(task_ids, dtype=torch.bool),
             grid_shape=[num_tasks, length, width, 1],
-            permutation=perm,
+            permutation=permutation,
         )[None]
 
         num_regressands = encoding.shape[1]
@@ -188,7 +188,7 @@ class SplatterHeatmap:
             indices_tij,
             encoding,
             grid_shape=[num_tasks, length, width, num_regressands],
-            permutation=perm,
+            permutation=permutation,
         )[None]
 
         grid_data.targets = GridTargets(
