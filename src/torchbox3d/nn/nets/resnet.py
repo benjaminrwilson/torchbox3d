@@ -21,7 +21,7 @@ class ResNet(LightningModule):
     """Construct a residual network object.
 
     Args:
-        name:
+        name: Name of the module.
         in_channels: Number of input channels.
         down_strides: Stride for each block.
         down_planes: Number of filters for each block.
@@ -104,7 +104,7 @@ class ResNet(LightningModule):
             (B,C,H,W) Tensor of features.
         """
         feats: List[Tensor] = []
-        for i in range(len(self.down_blocks)):
+        for i, _ in enumerate(self.down_blocks):
             x = self.down_blocks[i](x)
             if i - self.up_start_idx >= 0:
                 feats.append(self.up_blocks[i - self.up_start_idx](x))

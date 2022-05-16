@@ -17,8 +17,8 @@ from torchbox3d.datasets.argoverse.constants import DATASET_TO_TAXONOMY
 from torchbox3d.datasets.argoverse.utils import read_sweep_data
 from torchbox3d.datasets.datamodule import DataModule
 from torchbox3d.datasets.dataset import Dataset
-from torchbox3d.structures.collater import collate
 from torchbox3d.structures.data import Data
+from torchbox3d.utils.collater import collate
 from torchbox3d.utils.collections import flatten
 
 logger = logging.getLogger(__name__)
