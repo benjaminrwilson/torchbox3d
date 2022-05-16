@@ -172,23 +172,23 @@ class SplatterHeatmap:
         offsets = scatter_nd(
             indices_tij,
             src=offsets,
-            shape=[num_tasks, length, width, 1],
-            perm=perm,
+            grid_shape=[num_tasks, length, width, 1],
+            permutation=perm,
         )[None]
 
         mask = scatter_nd(
             indices_tij,
             torch.ones_like(task_ids, dtype=torch.bool),
-            shape=[num_tasks, length, width, 1],
-            perm=perm,
+            grid_shape=[num_tasks, length, width, 1],
+            permutation=perm,
         )[None]
 
         num_regressands = encoding.shape[1]
         encoding = scatter_nd(
             indices_tij,
             encoding,
-            shape=[num_tasks, length, width, num_regressands],
-            perm=perm,
+            grid_shape=[num_tasks, length, width, num_regressands],
+            permutation=perm,
         )[None]
 
         grid_data.targets = GridTargets(

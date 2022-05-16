@@ -1,6 +1,6 @@
 """Methods for manipulating indices."""
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import Tensor
@@ -74,15 +74,18 @@ def unravel_index(raveled_indices: Tensor, shape: List[int]) -> Tensor:
 
 @torch.jit.script
 def scatter_nd(
-    index: Tensor, src: Tensor, shape: List[int], perm: List[int]
+    index: Tensor,
+    src: Tensor,
+    grid_shape: List[int],
+    permutation: Optional[List[int]] = None,
 ) -> Tensor:
     """Emplace (scatter) a set of values at the index locations.
 
     Args:
         index: (N,K) Tensor of coordinates.
         src: (N,K) Values to emplace.
-        shape: (K,) Size of each dimension.
-        perm: Permutation to apply after scattering.
+        grid_shape: (K,) Size of each dimension.
+        permutation: Permutation to apply after scattering.
 
     Returns:
         The scattered output.
@@ -90,12 +93,16 @@ def scatter_nd(
     if src.ndim == 1:
         src = src[:, None]
 
-    raveled_indices = ravel_multi_index(index, shape[:-1])[:, None].repeat(
-        1, shape[-1]
+    raveled_indices = ravel_multi_index(index, grid_shape[:-1])[
+        :, None
+    ].repeat(1, grid_shape[-1])
+    dst = torch.zeros(grid_shape, device=src.device, dtype=src.dtype)
+    dst.view(-1, grid_shape[-1]).scatter_add_(
+        dim=0, index=raveled_indices, src=src
     )
-    dst = torch.zeros(shape, device=src.device, dtype=src.dtype)
-    dst.view(-1, shape[-1]).scatter_add_(dim=0, index=raveled_indices, src=src)
-    return dst.permute(perm)
+    if permutation is not None:
+        dst = dst.permute(permutation)
+    return dst
 
 
 @torch.jit.script
