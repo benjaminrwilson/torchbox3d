@@ -35,5 +35,5 @@ class RegularGridData(Data):
     """
 
     grid: RegularGrid
-    voxels: SparseTensor
+    cells: SparseTensor
     targets: GridTargets

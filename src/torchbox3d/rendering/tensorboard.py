@@ -35,16 +35,16 @@ def to_tensorboard(
     if trainer.state.stage == RunningStage.SANITY_CHECKING:
         return
 
-    B = int(gts.voxels.C[..., -1].max().item()) + 1
+    B = int(gts.cells.C[..., -1].max().item()) + 1
     size = gts.grid.grid_size
     size = size + (B, 3)
 
-    is_pillars = gts.voxels.F.ndim == 3
+    is_pillars = gts.cells.F.ndim == 3
     if is_pillars:
-        gts.voxels.F = gts.voxels.F.sum(dim=1)
+        gts.cells.F = gts.cells.F.sum(dim=1)
 
     grid = torch.sparse_coo_tensor(
-        indices=gts.voxels.C.mT, values=gts.voxels.F[..., :3], size=size
+        indices=gts.cells.C.mT, values=gts.cells.F[..., :3], size=size
     )
 
     if not is_pillars:
@@ -91,7 +91,6 @@ def _draw_cuboids(
     bev: Tensor,
     grid: RegularGrid,
     color: Tuple[int, int, int],
-    k: Optional[int] = None,
 ) -> Tensor:
     """Draw cuboids on a bird's-eye view image."""
     if len(cuboids) == 0:

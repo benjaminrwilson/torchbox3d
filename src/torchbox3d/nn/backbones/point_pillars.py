@@ -68,8 +68,8 @@ class PointPillars(LightningModule):
         Returns:
             A dictionary of layer names to outputs.
         """
-        indices = data.voxels.C.long()
-        x = data.voxels.F
+        indices = data.cells.C.long()
+        x = data.cells.F
         x, _ = self.pointnet(x)
         canvas = self.pillar_scatter(x, indices, data.grid)
 

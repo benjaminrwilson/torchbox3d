@@ -54,7 +54,7 @@ class Voxelize:
 
         x.grid = self.grid
         x.values = values
-        x.voxels = SparseTensor(values=values, indices=indices)
+        x.cells = SparseTensor(values=values, indices=indices)
         return x
 
 
@@ -101,5 +101,5 @@ class Pillarize:
 
         x.grid = self.grid
         x.values = values
-        x.voxels = SparseTensor(values=values, indices=indices)
+        x.cells = SparseTensor(values=values, indices=indices)
         return x

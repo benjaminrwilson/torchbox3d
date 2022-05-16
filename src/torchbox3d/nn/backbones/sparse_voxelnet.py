@@ -98,8 +98,8 @@ class SparseVoxelNet(LightningModule):
             Dense representation constructed from the convolved,
                 sparse outputs.
         """
-        x.voxels.C = x.voxels.C.int()
-        outputs = {"out": x.voxels}
+        x.cells.C = x.cells.C.int()
+        outputs = {"out": x.cells}
         out: SparseTensor = outputs["out"]
         for layer_name, layer in self.layers.items():
             outputs["out"] = layer(outputs["out"])
