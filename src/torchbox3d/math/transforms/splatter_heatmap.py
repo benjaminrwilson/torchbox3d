@@ -49,7 +49,7 @@ class SplatterHeatmap:
         Returns:
             Ground truth data with additional attributes.
         """
-        return self.splatter(grid_data)
+        return self.splatter_targets(grid_data)
 
     def preprocess_targets(
         self, grid_data: RegularGridData
@@ -73,8 +73,8 @@ class SplatterHeatmap:
         cuboids = grid_data.cuboids
 
         # Sort cuboids based off of cuboid categories.
-        inv = cuboids.categories.argsort()
-        cuboids = cuboids[inv]
+        inverse_indices = cuboids.categories.argsort()
+        cuboids = cuboids[inverse_indices]
 
         # Compute mask for valid categories.
         selected_categories = cuboids.categories.eq(
@@ -88,11 +88,11 @@ class SplatterHeatmap:
         out: Tuple[Tensor, Tensor] = torch.unique(
             cuboids.categories, return_inverse=True
         )
-        _, inv = out
-        cuboids.categories = inv[src]
+        _, inverse_indices = out
+        cuboids.categories = inverse_indices[src]
 
         # Compute the categories to contiguous set of ids.
-        inv_map = {v: k for k, v in label_to_index.items()}
+        inverse_map = {v: k for k, v in label_to_index.items()}
 
         offset_map = {}
         task_map = {}
@@ -103,20 +103,20 @@ class SplatterHeatmap:
 
         offsets = torch.as_tensor(
             [
-                offset_map[inv_map[int(cls_id.item())]]
+                offset_map[inverse_map[int(cls_id.item())]]
                 for cls_id in noncontiguous_categories
             ]
         )
 
         task_ids = torch.as_tensor(
             [
-                task_map[inv_map[int(cls_id.item())]]
+                task_map[inverse_map[int(cls_id.item())]]
                 for cls_id in noncontiguous_categories
             ]
         )
         return cuboids, offsets, task_ids
 
-    def splatter(self, grid_data: RegularGridData) -> Data:
+    def splatter_targets(self, grid_data: RegularGridData) -> Data:
         """Splatter the ground truth annotations onto the canvas.
 
         Args:
