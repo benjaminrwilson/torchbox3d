@@ -46,13 +46,13 @@ class FocalLoss(LightningModule):
 
 @torch.jit.script
 def focal_loss(
-    x: Tensor, y: Tensor, task_offsets: Tensor, mask: Tensor
+    src: Tensor, targets: Tensor, task_offsets: Tensor, mask: Tensor
 ) -> Tuple[Tensor, Tensor]:
     """Compute focal loss over the BEV grid.
 
     Args:
-        x: (B,C,H,W) Tensor of network outputs.
-        y: (B,1,H,W) Tensor of target scores.
+        src: (B,C,H,W) Tensor of network outputs.
+        targets: (B,1,H,W) Tensor of target scores.
         task_offsets: (B,1,H,W) Tensor of task offsets.
         mask: (B,1,H,W) Tensor of target centers (binary mask).
 
@@ -61,16 +61,18 @@ def focal_loss(
     """
     index = ravel_multi_index(mask.nonzero(), shape=list(mask.shape))
 
-    negative_loss = (1 - x).log_() * (x**2) * (1 - y) ** 4
-    x = x.gather(dim=1, index=task_offsets)
-    x = x.flatten().gather(dim=-1, index=index)
+    negative_loss = (1 - src).log_() * (src**2) * (1 - targets) ** 4
+    src = src.gather(dim=1, index=task_offsets)
+    src = src.flatten().gather(dim=-1, index=index)
 
     npos = mask.flatten(1, -1).sum(dim=-1)
-    x = x.log_() * (1 - x) ** 2
+    src = src.log_() * (1 - src) ** 2
 
-    positive_loss = torch.zeros((len(npos), int(npos.max())), device=x.device)
+    positive_loss = torch.zeros(
+        (len(npos), int(npos.max())), device=src.device
+    )
     batch_lengths: List[int] = npos.tolist()
-    for i, loss in enumerate(x.split(batch_lengths)):
+    for i, loss in enumerate(src.split(batch_lengths)):
         positive_loss[i, : len(loss)] = loss
 
     dim = [1, 2, 3]
