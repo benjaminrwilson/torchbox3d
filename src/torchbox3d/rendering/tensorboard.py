@@ -44,7 +44,9 @@ def to_tensorboard(
         gts.cells.values = gts.cells.values.sum(dim=1)
 
     grid = torch.sparse_coo_tensor(
-        indices=gts.cells.indices.mT, values=gts.cells.values[..., :3], size=size
+        indices=gts.cells.indices.mT,
+        values=gts.cells.values[..., :3],
+        size=size,
     )
 
     if not is_pillars:

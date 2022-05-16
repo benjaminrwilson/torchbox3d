@@ -102,6 +102,7 @@ def pillar_scatter(
     length, width = grid.grid_size[:2]
     num_batches = int(indices[..., -1].max().item() + 1)
     num_features = int(values.shape[-1])
+
     canvas: Tensor = scatter_nd(
         indices,
         src=values,

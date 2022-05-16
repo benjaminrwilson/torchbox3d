@@ -12,9 +12,7 @@ from torchbox3d.math.ops.index import scatter_nd
 
 
 @dataclass
-class SparseTensor:  # type: ignore
-    """Wrapper around `torchsparse.SparseTensor`."""
-
+class SparseTensor:
     values: Tensor
     indices: Tensor
     counts: Tensor

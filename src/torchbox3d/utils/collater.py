@@ -69,26 +69,27 @@ def collate(data_list: Sequence[Data]) -> Data:
 
 
 def sparse_collate(sparse_tensor_list: List[SparseTensor]) -> SparseTensor:
-    indices = []
-    values = []
-    counts = []
+    indices_list = []
+    values_list = []
+    counts_list = []
     stride = sparse_tensor_list[0].stride
 
-    for k, sparse_tensor in enumerate(sparse_tensor_list):
+    for key, sparse_tensor in enumerate(sparse_tensor_list):
         input_size = sparse_tensor.indices.shape[0]
         batch = torch.full(
             (input_size, 1),
-            k,
+            key,
             device=sparse_tensor.indices.device,
             dtype=torch.int,
         )
 
-        indices.append(torch.cat((sparse_tensor.indices, batch), dim=1))
-        values.append(sparse_tensor.values)
-        counts.append(sparse_tensor.counts)
+        indices_list.append(torch.cat((sparse_tensor.indices, batch), dim=1))
+        values_list.append(sparse_tensor.values)
+        counts_list.append(sparse_tensor.counts)
 
-    indices = torch.cat(indices, dim=0)
-    values = torch.cat(values, dim=0)
+    indices = torch.cat(indices_list, dim=0)
+    values = torch.cat(values_list, dim=0)
+    counts = torch.cat(counts_list, dim=0)
     output = SparseTensor(
         indices=indices, values=values, counts=counts, stride=stride
     )

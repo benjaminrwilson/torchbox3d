@@ -22,7 +22,7 @@ def cluster_grid(
     indices: Tensor,
     values: Tensor,
     grid_size: List[int],
-    max_num_values: int = 1,
+    max_num_values: int = 20,
     cluster_type: ClusterType = ClusterType.MEAN,
 ) -> Tuple[Tensor, Tensor, Tensor]:
     """Apply a clustering operation on a grid.
