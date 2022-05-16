@@ -83,29 +83,31 @@ class CenterHead(LightningModule):
         return self.loss(data, y)
 
     def loss(
-        self, x: List[TaskOutputs], y: RegularGridData
+        self, task_outputs: List[TaskOutputs], grid_data: RegularGridData
     ) -> Tuple[List[TaskOutputs], CenterPointLoss]:
         """Compute the classification and regression losses.
 
         Args:
-            x: The outputs from the network.
-            y: The target ground truth data.
+            task_outputs: Outputs from the network.
+            grid_data: Target ground truth data.
 
         Returns:
             Dictionary of losses, outputs, and targets.
         """
-        targets = y.targets
+        targets = grid_data.targets
         losses: List[CenterPointLoss] = []
-        for t, _ in enumerate(self.tasks):
-            scores = targets.scores[:, t]
-            task_offsets = targets.offsets[:, t].long()
-            mask = targets.mask[:, t]
+        for task_idx, _ in enumerate(self.tasks):
+            scores = targets.scores[:, task_idx]
+            task_offsets = targets.offsets[:, task_idx].long()
+            mask = targets.mask[:, task_idx]
 
-            outputs_encoding = x[t].regressands
-            targets_encoding = targets.encoding[:, t]
+            outputs_encoding = task_outputs[task_idx].regressands
+            targets_encoding = targets.encoding[:, task_idx]
 
             heatmap = (
-                x[t].logits.sigmoid_().clamp(min=self.eps, max=1 - self.eps)
+                task_outputs[task_idx]
+                .logits.sigmoid_()
+                .clamp(min=self.eps, max=1 - self.eps)
             )
 
             positive_loss, negative_loss = self.cls_loss(
@@ -125,4 +127,4 @@ class CenterHead(LightningModule):
                 regression_weight=self.weight,
             )
             losses.append(loss)
-        return x, CenterPointLoss.stack(losses)
+        return task_outputs, CenterPointLoss.stack(losses)

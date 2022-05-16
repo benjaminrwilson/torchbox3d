@@ -1,6 +1,6 @@
 """Methods to help visualize data during training."""
 
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
 from pytorch_lightning import Trainer
@@ -35,16 +35,16 @@ def to_tensorboard(
     if trainer.state.stage == RunningStage.SANITY_CHECKING:
         return
 
-    B = int(gts.voxels.C[..., -1].max().item()) + 1
+    B = int(gts.cells.C[..., -1].max().item()) + 1
     size = gts.grid.grid_size
     size = size + (B, 3)
 
-    is_pillars = gts.voxels.F.ndim == 3
+    is_pillars = gts.cells.F.ndim == 3
     if is_pillars:
-        gts.voxels.F = gts.voxels.F.sum(dim=1)
+        gts.cells.F = gts.cells.F.sum(dim=1)
 
     grid = torch.sparse_coo_tensor(
-        indices=gts.voxels.C.mT, values=gts.voxels.F[..., :3], size=size
+        indices=gts.cells.C.mT, values=gts.cells.F[..., :3], size=size
     )
 
     if not is_pillars:
@@ -88,18 +88,27 @@ def to_tensorboard(
 
 def _draw_cuboids(
     cuboids: Cuboids,
-    bev: Tensor,
+    img: Tensor,
     grid: RegularGrid,
     color: Tuple[int, int, int],
-    k: Optional[int] = None,
 ) -> Tensor:
-    """Draw cuboids on a bird's-eye view image."""
+    """Draw cuboids on a bird's-eye view image.
+
+    Args:
+        cuboids: Cuboids representing objects.
+        img: (C,H,W) Image tensor.
+        grid: Grid model class.
+        color: (3,) RGB color.
+
+    Returns:
+        (C,H,W) Image with cuboids drawn.
+    """
     if len(cuboids) == 0:
-        return bev
+        return img
     cuboids_list = cuboids.cuboid_list()
     cuboids = cuboids_list[0]
-    bev = cuboids.draw_on_bev(grid, bev, color=color)
-    return bev
+    img = cuboids.draw_on_bev(grid, img, color=color)
+    return img
 
 
 def tensorboard_log_img(name: str, img: Tensor, trainer: Trainer) -> None:

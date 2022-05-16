@@ -67,14 +67,17 @@ class RegularGrid:
         Returns:
             The scaled, centered positions.
         """
-        N = min(self.num_dimensions, coordinates_m.shape[-1])
+        num_dimensions = min(self.num_dimensions, coordinates_m.shape[-1])
         delta_m_per_cell = torch.as_tensor(
             self.delta_m_per_cell,
             device=coordinates_m.device,
             dtype=torch.float,
         )
 
-        indices = coordinates_m[..., :N] / delta_m_per_cell[:N]
+        indices = (
+            coordinates_m[..., :num_dimensions]
+            / delta_m_per_cell[:num_dimensions]
+        )
         if not align_corners:
             indices += 0.5
         return indices.long()

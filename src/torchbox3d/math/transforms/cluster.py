@@ -37,25 +37,25 @@ class Voxelize:
             delta_m_per_cell=self.delta_m_per_cell,
         )
 
-    def __call__(self, x: RegularGridData) -> Data:
+    def __call__(self, grid_data: RegularGridData) -> Data:
         """Voxelize the points in the data object.
 
         Args:
-            x: Data object containing the points.
+            grid_data: Data object containing the points.
 
         Returns:
             The data with voxelized points.
         """
-        values = torch.cat((x.coordinates_m, x.values), dim=-1)
-        indices, mask = self.grid.transform_from(x.coordinates_m)
+        values = torch.cat((grid_data.coordinates_m, grid_data.values), dim=-1)
+        indices, mask = self.grid.transform_from(grid_data.coordinates_m)
         indices, values, _ = self.grid.cluster(
             indices[mask], values[mask], self.cluster_type
         )
 
-        x.grid = self.grid
-        x.values = values
-        x.voxels = SparseTensor(values=values, indices=indices)
-        return x
+        grid_data.grid = self.grid
+        grid_data.values = values
+        grid_data.cells = SparseTensor(values=values, indices=indices)
+        return grid_data
 
 
 @dataclass
@@ -84,22 +84,22 @@ class Pillarize:
             delta_m_per_cell=self.delta_m_per_cell,
         )
 
-    def __call__(self, x: RegularGridData) -> Data:
+    def __call__(self, grid_data: RegularGridData) -> Data:
         """Voxelize the points in the data object.
 
         Args:
-            x: Data object containing the points.
+            grid_data: Data object containing the points.
 
         Returns:
             The data with voxelized points.
         """
-        values = torch.cat((x.coordinates_m, x.values), dim=-1)
-        indices, mask = self.grid.transform_from(x.coordinates_m)
+        values = torch.cat((grid_data.coordinates_m, grid_data.values), dim=-1)
+        indices, mask = self.grid.transform_from(grid_data.coordinates_m)
         indices, values, counts = self.grid.cluster(
             indices[mask], values[mask], cluster_type=ClusterType.CONCATENATE
         )
 
-        x.grid = self.grid
-        x.values = values
-        x.voxels = SparseTensor(values=values, indices=indices)
-        return x
+        grid_data.grid = self.grid
+        grid_data.values = values
+        grid_data.cells = SparseTensor(values=values, indices=indices)
+        return grid_data
