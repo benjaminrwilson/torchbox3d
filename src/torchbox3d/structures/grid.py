@@ -106,7 +106,7 @@ class RegularGrid:
         )
         return indices, mask
 
-    def downsample(self, stride: int) -> Tuple[int, ...]:
+    def scale_grid(self, stride: int) -> Tuple[int, ...]:
         """Downsample the grid coordinates.
 
         Args:
@@ -115,8 +115,11 @@ class RegularGrid:
         Returns:
             The downsampled grid size.
         """
-        downsampled_dims = [int(d / stride) for d in self.grid_size]
-        return tuple(downsampled_dims)
+        grid_size = torch.as_tensor(self.grid_size)
+        scaled_grid_size: List[int] = (
+            torch.ceil(grid_size / stride).int().tolist()
+        )
+        return tuple(scaled_grid_size)
 
     @cached_property
     def grid_offset_m(self) -> Tuple[float, ...]:

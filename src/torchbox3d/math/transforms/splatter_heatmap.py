@@ -144,7 +144,7 @@ class SplatterHeatmap:
         grid_data.cuboids = grid_data.cuboids[mask]
         encoding = encode(targets)
 
-        downsampled_grid = grid_data.grid.downsample(self.network_stride)
+        downsampled_grid = grid_data.grid.scale_grid(self.network_stride)
         length, width = downsampled_grid[0], downsampled_grid[1]
         indices_ij = targets[..., :2].int()
         dimensions_lw = targets[..., 3:5]
