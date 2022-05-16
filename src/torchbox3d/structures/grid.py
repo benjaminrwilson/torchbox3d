@@ -43,7 +43,7 @@ class RegularGrid:
             )
 
     @property
-    def N(self) -> int:
+    def num_dimensions(self) -> int:
         """Return the dimension of the grid."""
         return len(self.min_world_coordinates_m)
 
@@ -67,7 +67,7 @@ class RegularGrid:
         Returns:
             The scaled, centered positions.
         """
-        N = min(self.N, coordinates_m.shape[-1])
+        N = min(self.num_dimensions, coordinates_m.shape[-1])
         delta_m_per_cell = torch.as_tensor(
             self.delta_m_per_cell,
             device=coordinates_m.device,
