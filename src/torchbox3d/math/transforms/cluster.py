@@ -12,13 +12,13 @@ from torchbox3d.structures.grid import BEVGrid, VoxelGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
 
 
-@dataclass
+@dataclass(frozen=True)
 class Voxelize:
     """Construct a voxelization transformation.
 
     Args:
-        min_world_coordinates_m: (3,) Minimum coordinates in meters.
-        max_world_coordinates_m: (3,) Maximum coordinates in meters.
+        min_world_coordinates_m: (2,) Minimum world coordinates in meters.
+        max_world_coordinates_m: (2,) Maximum world coordinates in meters.
         delta_m_per_cell: (3,) Ratio of meters to cell in meters.
         cluster_type: Cluster type used in the transformation.
     """
@@ -58,16 +58,15 @@ class Voxelize:
         return grid_data
 
 
-@dataclass
+@dataclass(frozen=True)
 class Pillarize:
-    """Construct a pillarize transformation.
+    """Construct a pillarization transformation.
 
     Args:
-        min_world_coordinates_m: (2,) Minimum coordinates in meters.
-        max_world_coordinates_m: (2,) Maximum coordinates in meters.
+        min_world_coordinates_m: (2,) Minimum world coordinates in meters.
+        max_world_coordinates_m: (2,) Maximum world coordinates in meters.
         delta_m_per_cell: (2,) Ratio of meters to cell in meters.
-        cluster_type: Cluster type used in the transformation
-            (e.g., pooling).
+        cluster_type: Cluster type used in the transformation.
     """
 
     min_world_coordinates_m: Tuple[float, float]
@@ -77,7 +76,7 @@ class Pillarize:
 
     @cached_property
     def grid(self) -> BEVGrid:
-        """Return the voxel grid associated with the transformation."""
+        """Return the bird's-eye view grid."""
         return BEVGrid(
             min_world_coordinates_m=self.min_world_coordinates_m,
             max_world_coordinates_m=self.max_world_coordinates_m,
@@ -85,13 +84,13 @@ class Pillarize:
         )
 
     def __call__(self, grid_data: RegularGridData) -> Data:
-        """Voxelize the points in the data object.
+        """Cluster the points in the data object.
 
         Args:
-            grid_data: Data object containing the points.
+            grid_data: Grid data object.
 
         Returns:
-            The data with voxelized points.
+            The clustered grid data.
         """
         values = torch.cat((grid_data.coordinates_m, grid_data.values), dim=-1)
         indices, mask = self.grid.transform_from(grid_data.coordinates_m)

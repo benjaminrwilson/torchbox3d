@@ -129,13 +129,14 @@ class SplatterHeatmap:
         grid_data.cuboids = cuboids
 
         targets = grid_data.cuboids.params.clone()
-        xy, mask = grid_data.grid.transform_from(targets[..., :2])
-        xy = xy[mask]
+        indices_ij, mask = grid_data.grid.transform_from(targets[..., :2])
+        indices_ij = indices_ij[mask]
+
         targets = targets[mask]
         offsets = offsets[mask]
         task_ids = task_ids[mask]
 
-        targets[..., :2] = xy
+        targets[..., :2] = indices_ij
         targets[..., :2] /= self.network_stride
 
         grid_data.cuboids = grid_data.cuboids[mask]
@@ -143,35 +144,35 @@ class SplatterHeatmap:
 
         downsampled_grid = grid_data.grid.downsample(self.network_stride)
         L, W = downsampled_grid[0], downsampled_grid[1]
-        xy = targets[..., :2].int()
-        lw = targets[..., 3:5]
+        indices_ij = targets[..., :2].int()
+        dimensions_lw = targets[..., 3:5]
 
         T = len(self.tasks_cfg)
         scores = torch.zeros((T, L, W))
-        indices = torch.cat((task_ids[:, None], xy), dim=1)
+        indices_tij = torch.cat((task_ids[:, None], indices_ij), dim=1)
 
-        if len(xy) > 0:
-            inv = unique_indices(indices)
+        if len(indices_ij) > 0:
+            inv = unique_indices(indices_tij)
 
-            indices = indices[inv]
+            indices_tij = indices_tij[inv]
             offsets = offsets[inv]
             task_ids = task_ids[inv]
             encoding = encoding[inv]
             scores = scatter_gaussian_targets(
                 task_ids=task_ids,
-                indices=xy[inv],
-                dims_lw=lw[inv],
+                indices_ij=indices_ij[inv],
+                dims_lw=dimensions_lw[inv],
                 scores=scores,
                 shape=[L, W],
             )
 
         perm = [0, 3, 1, 2]
         offsets = scatter_nd(
-            indices, src=offsets, shape=[T, L, W, 1], perm=perm
+            indices_tij, src=offsets, shape=[T, L, W, 1], perm=perm
         )[None]
 
         mask = scatter_nd(
-            indices,
+            indices_tij,
             torch.ones_like(task_ids, dtype=torch.bool),
             shape=[T, L, W, 1],
             perm=perm,
@@ -179,7 +180,7 @@ class SplatterHeatmap:
 
         R = encoding.shape[1]
         encoding = scatter_nd(
-            indices, encoding, shape=[T, L, W, R], perm=perm
+            indices_tij, encoding, shape=[T, L, W, R], perm=perm
         )[None]
 
         grid_data.targets = GridTargets(
@@ -194,7 +195,7 @@ class SplatterHeatmap:
 @torch.jit.script
 def scatter_gaussian_targets(
     task_ids: Tensor,
-    indices: Tensor,
+    indices_ij: Tensor,
     dims_lw: Tensor,
     scores: Tensor,
     shape: List[int],
@@ -203,23 +204,23 @@ def scatter_gaussian_targets(
 
     Args:
         task_ids: (N,1) Tensor of task ids (integer).
-        indices: (N,2) Tensor of the xy object centers.
+        indices_ij: (N,2) Tensor of the xy object centers.
         dims_lw: (N,2) Tensor of length and width of the objects.
         scores: (N,1) Tensor of confidence scores.
-        shape: (3,) Shape of the voxel grid.
+        shape: (3,) Shape of the grid.
 
     Returns:
-        The BEV plane with Gaussian targets.
+        The bird's-eye view plane scattered with Gaussian targets.
     """
     unique_task_ids: Tensor = torch.unique(task_ids)
     for _, task_id in enumerate(unique_task_ids):
         mask = task_ids == task_id
-        task_xy = indices[mask]
+        task_indices_ij = indices_ij[mask]
         sigma = dims_lw[mask] / 6
 
         sigma = torch.max(sigma, dim=-1, keepdim=True)[0]
         response, uv_coordinates = ogrid_sparse_gaussian(
-            task_xy, sigma, radius=3
+            task_indices_ij, sigma, radius=3
         )
         uv_coordinates, response, _ = clip_to_viewport(
             uv_coordinates, response, shape[0], shape[1]
@@ -237,6 +238,11 @@ def scatter_gaussian_targets(
             index=index,
             reduce="amax",
         ).mT
-        u, v = uv_coordinates[..., 0], uv_coordinates[..., 1]
-        scores[task_id : task_id + 1, u, v] = reduced_response
+        u_coordinates, v_coordinates = (
+            uv_coordinates[..., 0],
+            uv_coordinates[..., 1],
+        )
+        scores[
+            task_id : task_id + 1, u_coordinates, v_coordinates
+        ] = reduced_response
     return scores
