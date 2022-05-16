@@ -15,9 +15,9 @@ from torchbox3d.math.ops.coding import encode
 from torchbox3d.math.ops.index import (
     ravel_multi_index,
     scatter_nd,
+    unique_indices,
     unravel_index,
 )
-from torchbox3d.math.ops.pool import unique_indices
 from torchbox3d.rendering.ops.shaders import clip_to_viewport
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData
@@ -129,7 +129,7 @@ class SplatterHeatmap:
         x.cuboids = cuboids
 
         targets = x.cuboids.params.clone()
-        xy, mask = x.grid.transform_to_grid_coordinates(targets[..., :2])
+        xy, mask = x.grid.transform_from(targets[..., :2])
         xy = xy[mask]
         targets = targets[mask]
         offsets = offsets[mask]
@@ -141,7 +141,8 @@ class SplatterHeatmap:
         x.cuboids = x.cuboids[mask]
         encoding = encode(targets)
 
-        L, W, _ = x.grid.downsample(self.network_stride)
+        downsampled_grid = x.grid.downsample(self.network_stride)
+        L, W = downsampled_grid[0], downsampled_grid[1]
         xy = targets[..., :2].int()
         lw = targets[..., 3:5]
 

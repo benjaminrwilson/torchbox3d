@@ -7,7 +7,7 @@ import torch
 
 from torchbox3d.math.transforms.splatter_heatmap import SplatterHeatmap
 from torchbox3d.structures.cuboids import Cuboids
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.grid import VoxelGrid
 
 
 @pytest.mark.parametrize(
@@ -15,9 +15,9 @@ from torchbox3d.structures.ndgrid import VoxelGrid
     [
         pytest.param(
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
             1,
             {0: ["REGULAR_VEHICLE", "ANIMAL"]},

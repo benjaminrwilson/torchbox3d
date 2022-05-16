@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import List, Sequence, Tuple
 
 import torch
 from pytorch_lightning.core.lightning import LightningModule
 from torch import Tensor
+
+from torchbox3d.math.ops.index import ravel_multi_index
 
 
 @dataclass(unsafe_hash=True)
@@ -44,26 +46,39 @@ class FocalLoss(LightningModule):
 
 @torch.jit.script
 def focal_loss(
-    x: Tensor, y: Tensor, task_offsets: Tensor, mask: Tensor
+    src: Tensor, targets: Tensor, task_offsets: Tensor, mask: Tensor
 ) -> Tuple[Tensor, Tensor]:
     """Compute focal loss over the BEV grid.
 
     Args:
-        x: (B,C,H,W) Tensor of network outputs.
-        y: (B,1,H,W) Tensor of target scores.
+        src: (B,C,H,W) Tensor of network outputs.
+        targets: (B,1,H,W) Tensor of target scores.
         task_offsets: (B,1,H,W) Tensor of task offsets.
         mask: (B,1,H,W) Tensor of target centers (binary mask).
 
     Returns:
         (B,) Positive loss and (B,) negative loss.
     """
-    neg_loss = (1 - x).log_() * (x**2) * (1 - y) ** 4
+    index = ravel_multi_index(mask.nonzero(), shape=list(mask.shape))
 
-    x = torch.gather(x, dim=1, index=task_offsets)
-    pos_loss = x.log_() * (1 - x) ** 2 * mask
+    negative_loss = (1 - src).log_() * (src**2) * (1 - targets) ** 4
+    src = src.gather(dim=1, index=task_offsets)
+    src = src.flatten().gather(dim=-1, index=index)
+
+    npos = mask.flatten(1, -1).sum(dim=-1)
+    src = src.log_() * (1 - src) ** 2
+
+    positive_loss = torch.zeros(
+        (len(npos), int(npos.max())), device=src.device
+    )
+    batch_lengths: List[int] = npos.tolist()
+
+    batch_losses = torch.split(src, batch_lengths)  # type: ignore
+    for i, loss in enumerate(batch_losses):
+        positive_loss[i, : len(loss)] = loss
 
     dim = [1, 2, 3]
     npos = torch.clamp(mask.sum(dim=dim), min=1)
-    neg_loss = -torch.sum(neg_loss, dim=dim) / npos
-    pos_loss = -torch.sum(pos_loss, dim=dim) / npos
-    return pos_loss, neg_loss
+    negative_loss = -torch.sum(negative_loss, dim=dim) / npos
+    positive_loss = -torch.sum(positive_loss, dim=-1) / npos
+    return positive_loss, negative_loss

@@ -24,20 +24,6 @@ from torchbox3d.math.ops.index import (
 
 
 @torch.jit.script
-def align_corners(pos: Tensor) -> Tensor:
-    """Align a set of points to the center of a regular grid.
-
-    Args:
-        pos: (N,K) Set of points.
-
-    Returns:
-        The points with a half cell offset (centered).
-    """
-    centered_points = pos + 0.5
-    return centered_points
-
-
-@torch.jit.script
 def normal2(p1: Tensor, p2: Tensor, eps: float = EPS) -> Tensor:
     """Compute the 2D normal vector to the line defined by (p1,p2).
 
@@ -156,7 +142,7 @@ def circles(
 
     if antialias:
         mu = uv.repeat_interleave(int(radius**2), 0)
-        sigma = torch.ones_like(mu[:, 0])
+        sigma = torch.ones_like(mu[:, 0:1])
         alpha = gaussian_kernel(ogrid_uv, mu, sigma).prod(dim=-1, keepdim=True)
         tex *= alpha
 
@@ -256,7 +242,7 @@ def line2(
     ).transpose(0, 1)
     colors = color[:, None].repeat(1, len(line_uv))
     raveled_indices = ravel_multi_index(line_uv, list(img.shape[1:]))
-    img.view(3, -1).scatter_(
+    img.reshape(3, -1).scatter_(
         dim=-1, index=raveled_indices[None].repeat(3, 1), src=colors
     )
     return img

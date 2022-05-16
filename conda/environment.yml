@@ -14,11 +14,10 @@ dependencies:
   - pip
   - pyarrow
   - python
-  - pytorch ==1.11.0
+  - pytorch-gpu ==1.11.0
   - pytorch-lightning
   - pyyaml
   - rich
-  - s3fs
   - scipy
   - torchsparse
   - torchvision

@@ -7,20 +7,22 @@ from typing import Any, ItemsView, Tuple, Union
 
 import torch
 import torchsparse
-from torch import Size, Tensor, as_tensor, sparse_coo_tensor
+from torch import Size, Tensor, as_tensor
+
+from torchbox3d.math.ops.index import scatter_nd
 
 
 @dataclass
 class SparseTensor(torchsparse.SparseTensor):  # type: ignore
     """Wrapper around `torchsparse.SparseTensor`."""
 
-    feats: Tensor
-    coords: Tensor
+    values: Tensor
+    indices: Tensor
     stride: Union[int, Tuple[int, ...]] = 1
 
     def __post_init__(self) -> None:
         """Initialize the parent class."""
-        super().__init__(self.feats, self.coords, stride=self.stride)
+        super().__init__(self.values, self.indices, stride=self.stride)
 
     def to_dense(self, size: Size) -> Tensor:
         """Convert a `SparseTensor` into a dense output.
@@ -43,9 +45,11 @@ class SparseTensor(torchsparse.SparseTensor):  # type: ignore
         indices[:, 1] = indices[:, 1].clamp(0, L - 1)
         indices[:, 2] = indices[:, 2].clamp(0, H - 1)
 
-        sparse = sparse_coo_tensor(indices=indices.T, values=self.F, size=size)
-        dense = sparse.to_dense().permute(3, 4, 2, 0, 1)
-        return dense.reshape(B, -1, W, L)
+        dense = torch.zeros(size)
+        dense = scatter_nd(
+            indices, self.F, list(size), [3, 4, 2, 0, 1]
+        ).reshape(B, -1, W, L)
+        return dense
 
     def clone(self) -> SparseTensor:
         """Return a clone of the sparse tensor."""

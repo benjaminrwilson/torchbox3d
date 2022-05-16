@@ -101,8 +101,8 @@ class CenterHead(LightningModule):
             task_offsets = targets.offsets[:, t].long()
             mask = targets.mask[:, t]
 
-            outputs_encoding = x[t].regressands * mask
-            targets_encoding = targets.encoding[:, t] * mask
+            outputs_encoding = x[t].regressands
+            targets_encoding = targets.encoding[:, t]
 
             heatmap = (
                 x[t].logits.sigmoid_().clamp(min=self.eps, max=1 - self.eps)

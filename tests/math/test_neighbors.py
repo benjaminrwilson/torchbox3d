@@ -1,4 +1,4 @@
-"""Unit tests for the neighbors package."""
+"""Unit tests for the neighbors subpackage."""
 
 from typing import Any, Callable
 
@@ -6,22 +6,19 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchbox3d.math.neighbors import voxelize
-from torchbox3d.math.ops.voxelize import (
-    VoxelizationType,
-    voxelize_concatenate_kernel,
-)
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.math.conversions import voxelize
+from torchbox3d.math.ops.cluster import ClusterType, cluster_grid
+from torchbox3d.structures.grid import BEVGrid, RegularGrid, VoxelGrid
 
 
 @pytest.mark.parametrize(
-    "voxel_grid, points_xyz, indices_, values_, counts_",
+    "grid, coordinates_m, indices_, values_, counts_",
     [
         pytest.param(
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
             torch.as_tensor(
                 [
@@ -68,9 +65,9 @@ from torchbox3d.structures.ndgrid import VoxelGrid
         ),
         pytest.param(
             VoxelGrid(
-                min_range_m=(0.0, 0.0, 0.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+2.5, +2.5, +2.5),
+                min_world_coordinates_m=(0.0, 0.0, 0.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+2.5, +2.5, +2.5),
             ),
             torch.as_tensor(
                 [
@@ -106,28 +103,38 @@ from torchbox3d.structures.ndgrid import VoxelGrid
     ids=["test0", "test1"],
 )
 def test_voxelize(
-    voxel_grid: VoxelGrid,
-    points_xyz: Tensor,
+    grid: VoxelGrid,
+    coordinates_m: Tensor,
     indices_: Tensor,
     values_: Tensor,
     counts_: Tensor,
 ) -> None:
     """Test voxelizing a point cloud."""
-    indices, values, counts, _ = voxelize(points_xyz, points_xyz, voxel_grid)
+    indices, values, counts = voxelize(
+        coordinates_m,
+        coordinates_m,
+        list(grid.min_world_coordinates_m),
+        list(grid.delta_m_per_cell),
+        list(grid.grid_size),
+        cluster_type=ClusterType.MEAN,
+    )
+
     torch.testing.assert_allclose(indices, indices_)
     torch.testing.assert_allclose(values, values_)
     torch.testing.assert_allclose(counts, counts_)
 
 
 @pytest.mark.parametrize(
-    "voxel_grid, points_xyz, indices_, values_, counts_",
+    "grid, coordinates_m, indices_, values_, counts_",
     [
         pytest.param(
+            # grid
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
+            # points_m
             torch.as_tensor(
                 [
                     [1.55, 0.0, 0.0],
@@ -138,103 +145,192 @@ def test_voxelize(
                     [2.1, 2.1, 2.0],
                 ]
             ),
+            # indices_
             torch.as_tensor(
                 [
                     [
-                        50,
+                        50 + 16,
                         50,
                         25,
-                    ],  # (0.00, 0.00, 0.00) / (0.1, 0.1, 0.2) + (50, 50, 25)
-                    [
-                        51,
-                        51,
-                        25,
-                    ],  # (0.05, 0.05, 0.05) / (0.1, 0.1, 0.2) + (50, 50, 25)
+                    ],
                     [
                         50,
-                        60,
-                        25,
-                    ],  # (0.00, 1.00, 0.00) / (0.1, 0.1, 0.2) + (50, 50, 25)
-                    [
                         50,
-                        61,
                         25,
-                    ],  # (0.00, 1.08, 0.00) / (0.1, 0.1, 0.2) + (50, 50, 25)
+                    ],
+                    [
+                        55,
+                        55,
+                        28,
+                    ],
+                    [
+                        56,
+                        56,
+                        28,
+                    ],
+                    [
+                        65,
+                        50,
+                        25,
+                    ],
+                    [
+                        71,
+                        71,
+                        35,
+                    ],
                 ],
                 dtype=torch.int32,
-            ),  # 50 + 101 - 50
+            ),
+            # values_
             torch.as_tensor(
                 [
-                    [0.0, 0.0, 0.0],
-                    [0.05, 0.05, 0.05],
-                    [0.0, 1.0, 0.0],
-                    [0.0, 1.08, 0.0],
+                    [[1.5500, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.0000, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.5000, 0.5000, 0.5000], [0.0000, 0.0000, 0.0000]],
+                    [[0.5500, 0.5500, 0.5500], [0.0000, 0.0000, 0.0000]],
+                    [[1.5000, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[2.1000, 2.1000, 2.0000], [0.0000, 0.0000, 0.0000]],
                 ]
             ),
-            torch.as_tensor([1, 1, 1, 1]),
+            # counts_
+            torch.as_tensor([1, 1, 1, 1, 1, 1]),
+        ),
+        # Test 2 parameters.
+        pytest.param(
+            BEVGrid(
+                min_world_coordinates_m=(-5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1),
+            ),
+            # points_m
+            torch.as_tensor(
+                [
+                    [1.55, 0.0, 0.0],
+                    [0, 0, 0],
+                    [0.5, 0.5, 0.5],
+                    [0.55, 0.55, 0.55],
+                    [1.5, 0.0, 0.0],
+                    [2.1, 2.1, 2.0],
+                ]
+            ),
+            # indices_
+            # indices_
+            torch.as_tensor(
+                [
+                    [
+                        50 + 16,
+                        50,
+                    ],
+                    [
+                        50,
+                        50,
+                    ],
+                    [
+                        55,
+                        55,
+                    ],
+                    [
+                        56,
+                        56,
+                    ],
+                    [
+                        65,
+                        50,
+                    ],
+                    [
+                        71,
+                        71,
+                    ],
+                ],
+                dtype=torch.int32,
+            ),
+            # values_
+            torch.as_tensor(
+                [
+                    [[1.5500, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.0000, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.5000, 0.5000, 0.5000], [0.0000, 0.0000, 0.0000]],
+                    [[0.5500, 0.5500, 0.5500], [0.0000, 0.0000, 0.0000]],
+                    [[1.5000, 0.0000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[2.1000, 2.1000, 2.0000], [0.0000, 0.0000, 0.0000]],
+                ]
+            ),
+            # counts_
+            torch.as_tensor([1, 1, 1, 1, 1, 1]),
         ),
     ],
-    ids=["test0"],
+    ids=[
+        "Test clustering points into voxels.",
+        "Test clustering points into pillars.",
+    ],
 )
 def test_voxelize_concatenate_kernel(
-    voxel_grid: VoxelGrid,
-    points_xyz: Tensor,
+    grid: RegularGrid,
+    coordinates_m: Tensor,
     indices_: Tensor,
     values_: Tensor,
     counts_: Tensor,
 ) -> None:
     """Test voxelization with truncated reduction."""
-    voxels, values, _, _ = voxelize_concatenate_kernel(
-        points_xyz,
-        points_xyz,
-        voxel_grid,
+    indices, values, counts = voxelize(
+        coordinates_m,
+        coordinates_m,
+        list(grid.min_world_coordinates_m),
+        list(grid.delta_m_per_cell),
+        list(grid.grid_size),
+        cluster_type=ClusterType.CONCATENATE,
+        max_num_values=2,
     )
+
+    torch.testing.assert_allclose(indices, indices_)
+    torch.testing.assert_allclose(values, values_)
+    torch.testing.assert_allclose(counts, counts_)
 
 
 @pytest.mark.parametrize(
-    "points_xyz, voxel_grid",
+    "points_xyz, grid",
     [
         pytest.param(
             torch.rand((100000, 3)),
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
         )
     ],
     ids=["Benchmark the voxelization concatenate op with 100,000 points."],
 )
 def test_benchmark_voxelize_concatenate(
-    benchmark: Callable[..., Any], points_xyz: Tensor, voxel_grid: VoxelGrid
+    benchmark: Callable[..., Any], points_xyz: Tensor, grid: VoxelGrid
 ) -> None:
     """Benchmark concatenate kernel with 100k points."""
     benchmark(
-        voxelize,
+        cluster_grid,
         points_xyz,
         points_xyz,
-        voxel_grid,
-        voxelization_type=VoxelizationType.CONCATENATE,
+        list(grid.grid_size),
+        cluster_type=ClusterType.CONCATENATE,
     )
 
 
 @pytest.mark.parametrize(
-    "points_xyz, voxel_grid",
+    "points_xyz, grid",
     [
         pytest.param(
             torch.rand((100000, 3)),
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
         ),
         pytest.param(
             torch.rand((500000, 3)),
             VoxelGrid(
-                min_range_m=(-5.0, -5.0, -5.0),
-                max_range_m=(+5.0, +5.0, +5.0),
-                resolution_m_per_cell=(+0.1, +0.1, +0.2),
+                min_world_coordinates_m=(-5.0, -5.0, -5.0),
+                max_world_coordinates_m=(+5.0, +5.0, +5.0),
+                delta_m_per_cell=(+0.1, +0.1, +0.2),
             ),
         ),
     ],
@@ -244,13 +340,13 @@ def test_benchmark_voxelize_concatenate(
     ],
 )
 def test_benchmark_voxelize_pool(
-    benchmark: Callable[..., Any], points_xyz: Tensor, voxel_grid: VoxelGrid
+    benchmark: Callable[..., Any], points_xyz: Tensor, grid: VoxelGrid
 ) -> None:
     """Benchmark mean-pooling voxelization on 100k points."""
     benchmark(
-        voxelize,
+        cluster_grid,
         points_xyz,
         points_xyz,
-        voxel_grid,
-        voxelization_type=VoxelizationType.POOL,
+        list(grid.grid_size),
+        cluster_type=ClusterType.MEAN,
     )

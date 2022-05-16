@@ -1,6 +1,6 @@
 """Methods to help visualize data during training."""
 
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 from pytorch_lightning import Trainer
@@ -10,13 +10,10 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from torch import Tensor
 from torchvision.utils import make_grid
 
-from torchbox3d.math.conversions import (
-    denormalize_pixel_intensities,
-    sweep_to_bev,
-)
+from torchbox3d.math.conversions import denormalize_pixel_intensities
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import RegularGridData
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.outputs import NetworkOutputs
 
 
@@ -38,24 +35,35 @@ def to_tensorboard(
     if trainer.state.stage == RunningStage.SANITY_CHECKING:
         return
 
-    batch_index = gts.voxels.C[..., -1]
-    outputs: Tuple[Tensor, Tensor] = batch_index.unique_consecutive(
-        return_counts=True
-    )
-    _, counts = outputs
-    counts_list: List[int] = counts.tolist()
-    voxel_list = gts.voxels.C[..., :3].split(counts_list)
+    B = int(gts.voxels.C[..., -1].max().item()) + 1
+    size = gts.grid.grid_size
+    size = size + (B, 3)
 
-    bev = sweep_to_bev(voxel_list[0], gts.grid.dims)[0]
-    bev = bev.repeat(3, 1, 1)
+    is_pillars = gts.voxels.F.ndim == 3
+    if is_pillars:
+        gts.voxels.F = gts.voxels.F.sum(dim=1)
+
+    grid = torch.sparse_coo_tensor(
+        indices=gts.voxels.C.mT, values=gts.voxels.F[..., :3], size=size
+    )
+
+    if not is_pillars:
+        grid = torch.sparse.sum(grid, dim=2)
+    bev = (
+        grid.to_dense()
+        .permute(2, 3, 0, 1)[0][2:3]
+        .abs()
+        .repeat_interleave(3, dim=0)
+    )
+
     bev = denormalize_pixel_intensities(bev)
     _draw_cuboids(gts.cuboids, bev, gts.grid, (0, 0, 255))
 
     dts_list = dts.cuboid_list()
     selected_predictions = dts_list[0]
 
-    # Only show 100 predictions for speed.
-    _, indices = selected_predictions.scores.topk(k=100, dim=0)
+    # Only show 50 predictions for speed.
+    _, indices = selected_predictions.scores.topk(k=50, dim=0)
     selected_predictions = selected_predictions[indices.flatten()]
     if len(selected_predictions) > 0:
         bev = selected_predictions.draw_on_bev(gts.grid, bev)
@@ -81,7 +89,7 @@ def to_tensorboard(
 def _draw_cuboids(
     cuboids: Cuboids,
     bev: Tensor,
-    grid: VoxelGrid,
+    grid: RegularGrid,
     color: Tuple[int, int, int],
     k: Optional[int] = None,
 ) -> Tensor:

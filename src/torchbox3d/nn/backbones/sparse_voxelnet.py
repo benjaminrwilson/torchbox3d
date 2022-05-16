@@ -19,18 +19,18 @@ class SparseVoxelNet(LightningModule):
 
     Args:
         dim_in: Dimension of the input features.
-        resolution_m_per_cell: (3,) Ratio of meters to cell in meters.
-        min_range_m: (3,) Minimum range along the x,y,z axes in meters.
-        max_range_m: (3,) Maximum range along the x,y,z axes in meters.
-        voxelization_type: Voxelization type used in the transformation.
+        delta_m_per_cell: (3,) Ratio of meters to cell in meters.
+        min_world_coordinates_m: (3,) Minimum coordinates in meters.
+        max_world_coordinates_m: (3,) Maximum coordinates in meters.
+        cluster_type: Voxelization type used in the transformation.
     """
 
     name: str
     dim_in: int
-    resolution_m_per_cell: Tuple[int, int, int]
-    min_range_m: Tuple[int, int, int]
-    max_range_m: Tuple[int, int, int]
-    voxelization_type: str
+    delta_m_per_cell: Tuple[int, int, int]
+    min_world_coordinates_m: Tuple[int, int, int]
+    max_world_coordinates_m: Tuple[int, int, int]
+    cluster_type: str
     layers: ModuleDict = field(init=False)
 
     def __post_init__(self) -> None:
@@ -98,6 +98,7 @@ class SparseVoxelNet(LightningModule):
             Dense representation constructed from the convolved,
                 sparse outputs.
         """
+        x.voxels.C = x.voxels.C.int()
         outputs = {"out": x.voxels}
         out: SparseTensor = outputs["out"]
         for layer_name, layer in self.layers.items():
@@ -111,7 +112,7 @@ class SparseVoxelNet(LightningModule):
         out = outputs["out"]
         out = SparseTensor(out.F, out.C, out.s)
 
-        vgrid_shape = torch.as_tensor(x.grid.dims)
+        vgrid_shape = torch.as_tensor(x.grid.grid_size)
         stride = torch.as_tensor(out.s)
         dims: List[int] = (vgrid_shape / stride).int().tolist()
 

@@ -29,7 +29,7 @@ class AV2(Dataset, data_utils.Dataset[Data]):
     """Argoverse 2 sensor dataset.
 
     Args:
-        transform:
+        transform: Callable transformation applied to each datum.
         sensor_cache:
         label_to_idx:
     """
@@ -63,7 +63,7 @@ class AV2(Dataset, data_utils.Dataset[Data]):
         """Load an item of the dataset and return it.
 
         Args:
-            index: The dataset index.
+            index: The dataset item index.
 
         Returns:
             An item of the dataset.

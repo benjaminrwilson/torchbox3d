@@ -37,7 +37,8 @@ def train(cfg: DictConfig) -> None:
     datamodule = get_datamodule(cfg)
     trainer = get_trainer(cfg)
     model: LightningModule = CenterPoint.load_from_checkpoint(
-        "/home/ubuntu/code/torchbox-3d/scripts/experiments/centerpoint/2022-04-07-03-40-52/checkpoints/test.ckpt"
+        "/home/ubuntu/code/torchbox-3d/scripts/experiments/centerpoint/"
+        "2022-04-07-03-40-52/checkpoints/test.ckpt"
     )
     trainer.validate(model, datamodule=datamodule)
 
@@ -51,7 +52,6 @@ def get_trainer(cfg: DictConfig) -> Trainer:
     Returns:
         Trainer: The PyTorch Lightning trainer.
     """
-
     trainer = Trainer(
         **cfg.trainer,
     )

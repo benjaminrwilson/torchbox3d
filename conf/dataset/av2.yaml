@@ -61,27 +61,15 @@ tasks_cfg:
   # "ANIMAL" (Zero instances in val)
 
 train_transforms_cfg:  # Validation transforms.
-  voxelize:
-    _target_: torchbox3d.math.transforms.voxelize.Voxelize
-
-    resolution_m_per_cell: ${model.arch_cfg.backbone_cfg.resolution_m_per_cell}
-    min_range_m: ${model.arch_cfg.backbone_cfg.min_range_m}
-    max_range_m: ${model.arch_cfg.backbone_cfg.max_range_m}
-    voxelization_type: ${model.arch_cfg.backbone_cfg.voxelization_type}
-
-  splatter_heatmap:
-    _target_: torchbox3d.math.transforms.splatter_heatmap.SplatterHeatmap  # Mapping to Python class for `hydra`.
-    
-    tasks_cfg: ${dataset.tasks_cfg}  # Task mapping. Maps unique integers to lists of target classes.
-    network_stride: ${model.arch_cfg.network_stride}  # Spatial downsampling factor between input resolution and output resolution.
-    dataset_name: ${dataset.name}
+  cluster: ${model.arch_cfg.train_transforms_cfg.cluster}
+  splatter_heatmap: ${model.arch_cfg.train_transforms_cfg.splatter_heatmap}
 
 # Validation transforms.
 val_transforms_cfg:
-  voxelize: ${dataset.train_transforms_cfg.voxelize}
+  cluster: ${dataset.train_transforms_cfg.cluster}
   splatter_heatmap: ${dataset.train_transforms_cfg.splatter_heatmap}
 
  # Test transforms.
 test_transforms_cfg:
-  voxelize: ${dataset.train_transforms_cfg.voxelize}
+  cluster: ${dataset.train_transforms_cfg.cluster}
   splatter_heatmap: ${dataset.train_transforms_cfg.splatter_heatmap}

@@ -10,7 +10,7 @@ from torch import Tensor
 from torchbox3d.math.linalg.lie.SO3 import quat_to_yaw, yaw_to_quat
 from torchbox3d.math.ops.index import mgrid
 from torchbox3d.structures.cuboids import Cuboids
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.outputs import TaskOutputs
 
 T = TypeVar("T")
@@ -66,7 +66,7 @@ def encode(cuboids: Tensor) -> Tensor:
 
 def decode(
     task_outputs_list: List[TaskOutputs],
-    voxel_grid: VoxelGrid,
+    voxel_grid: RegularGrid,
     network_stride: int,
     max_k: int,
     to_nonconsecutive: Tensor,
@@ -91,7 +91,7 @@ def decode(
 
 def _decode_lwh(
     task_outputs_list: List[TaskOutputs],
-    voxel_grid: VoxelGrid,
+    voxel_grid: RegularGrid,
     network_stride: int,
     max_k: int,
     to_nonconsecutive: Tensor,
@@ -116,8 +116,8 @@ def _decode_lwh(
     W = task_outputs.regressands.shape[-1]
     grid_idx = mgrid([[0, H], [0, W]])[None].float().to(device)
 
-    resolution_m_per_cell = torch.as_tensor(
-        voxel_grid.resolution_m_per_cell[:2],
+    delta_m_per_cell = torch.as_tensor(
+        voxel_grid.delta_m_per_cell[:2],
         dtype=task_outputs.logits.dtype,
         device=task_outputs.logits.device,
     )[None, :, None, None]
@@ -156,7 +156,7 @@ def _decode_lwh(
 
         # Transform coordinates to original coordinates.
         ctrs = offset + grid_idx
-        ctrs *= network_stride * resolution_m_per_cell
+        ctrs *= network_stride * delta_m_per_cell
 
         # Convert image coordinates to ego coordinates.
         ctrs -= grid_offset

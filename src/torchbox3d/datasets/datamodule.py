@@ -56,4 +56,11 @@ class DataModule(LightningDataModule):
                 list(self.test_transforms_cfg.values())
             )
 
-        self.save_hyperparameters(ignore=["tasks_cfg"])
+        self.save_hyperparameters(
+            ignore=[
+                "tasks_cfg",
+                "train_transforms_cfg",
+                "val_transforms_cfg",
+                "test_transforms_cfg",
+            ]
+        )

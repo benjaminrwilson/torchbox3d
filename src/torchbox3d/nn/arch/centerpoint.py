@@ -30,7 +30,7 @@ from torchbox3d.nn.meta.arch import Detector
 from torchbox3d.rendering.tensorboard import to_tensorboard
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.outputs import NetworkOutputs, TaskOutputs
 from torchbox3d.structures.targets import CenterPointLoss
 
@@ -167,7 +167,7 @@ class CenterPoint(Detector):
     def predict_step(  # type: ignore[override]
         self,
         outputs_list: List[TaskOutputs],
-        voxel_grid: VoxelGrid,
+        voxel_grid: RegularGrid,
         batch_idx: int,
         dataloader_idx: Optional[int] = None,
     ) -> Cuboids:
@@ -192,8 +192,8 @@ class CenterPoint(Detector):
         )
         return cuboids
 
-    def validation_epoch_end(
-        self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]
+    def validation_epoch_end(  # type: ignore[override]
+        self, outputs: List[Dict[str, Union[Tuple[str, ...], Cuboids]]]
     ) -> None:
         """Run validation epoch end."""
         if self.trainer is None:
@@ -211,12 +211,12 @@ class CenterPoint(Detector):
         try:
             from torch.distributed import is_initialized
 
-            if is_initialized():
+            if is_initialized():  # type: ignore
                 # Gather detections from all gpus.
                 gathered_outputs: List[Optional[pd.DataFrame]] = [
                     None
-                ] * dist.get_world_size()
-                dist.all_gather_object(gathered_outputs, dts)
+                ] * dist.get_world_size()  # type: ignore
+                dist.all_gather_object(gathered_outputs, dts)  # type: ignore
                 dts = pd.concat(gathered_outputs)
         except ImportError:
             pass
@@ -264,8 +264,7 @@ class CenterPoint(Detector):
             cfg = DetectionCfg(
                 dataset_dir=dataset_dir,
                 categories=tuple(sorted(categories)),
-                split=split,
-                max_range_m=200.0,
+                max_range_m=150.0,
                 eval_only_roi_instances=True,
             )
 

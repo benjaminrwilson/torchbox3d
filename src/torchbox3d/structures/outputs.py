@@ -32,7 +32,6 @@ class TaskOutputs(TensorStruct):
     Args:
         logits: (B,C,H,W) Raw class values before being mapped to [0,1].
         regressands: (B,R,H,W) Tensor of predicted continuous values.
-
     """
 
     logits: Tensor

@@ -9,7 +9,7 @@ from torchsparse.utils.collate import sparse_collate
 
 from torchbox3d.structures.cuboids import Cuboids
 from torchbox3d.structures.data import Data, RegularGridData
-from torchbox3d.structures.ndgrid import VoxelGrid
+from torchbox3d.structures.grid import RegularGrid
 from torchbox3d.structures.sparse_tensor import SparseTensor
 from torchbox3d.structures.targets import GridTargets
 
@@ -36,7 +36,7 @@ def collate(data_list: Sequence[Data]) -> Data:
         elem = attr[0]
 
         # Pad with batch index.
-        if attr_name in set(["pos", "x"]):
+        if attr_name in set(["coordinates_m", "values"]):
             output[attr_name] = torch.cat(
                 [
                     F.pad(elem, [0, 1], "constant", i)
@@ -50,9 +50,9 @@ def collate(data_list: Sequence[Data]) -> Data:
         elif isinstance(elem, SparseTensor):
             sparse_tensor = sparse_collate(attr)
             output[attr_name] = SparseTensor(
-                feats=sparse_tensor.F, coords=sparse_tensor.C
+                values=sparse_tensor.F, indices=sparse_tensor.C
             )
-        elif isinstance(elem, VoxelGrid):
+        elif isinstance(elem, RegularGrid):
             output[attr_name] = attr[0]
         elif attr_name in set(["encoding", "mask", "coo"]):
             output[attr_name] = torch.cat(attr)
