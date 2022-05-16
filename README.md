@@ -13,10 +13,12 @@
 ## Supported Models
 
 - Architectures:
-  - [SECOND [Sensors 2018]](https://pdfs.semanticscholar.org/5125/a16039cabc6320c908a4764f32596e018ad3.pdf)
+  - [SECOND [Sensors 2018]](https://www.mdpi.com/1424-8220/18/10/3337)
 
 - Heads:
-  - [CenterPoint [CVPR 2021]](https://openaccess.thecvf.com/content/CVPR2021/papers/Yin_Center-Based_3D_Object_Detection_and_Tracking_CVPR_2021_paper.pdf)
+  - [CenterPoint [CVPR 2021]](https://openaccess.thecvf.com/content/CVPR2021/html/Yin_Center-Based_3D_Object_Detection_and_Tracking_CVPR_2021_paper.html)
+
+  - [PointPillars [CVPR 2019]](https://openaccess.thecvf.com/content_CVPR_2019/html/Lang_PointPillars_Fast_Encoders_for_Object_Detection_From_Point_Clouds_CVPR_2019_paper.html)
 
 ## Supported Datasets
 
