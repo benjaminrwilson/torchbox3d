@@ -16,9 +16,8 @@
   - [SECOND [Sensors 2018]](https://www.mdpi.com/1424-8220/18/10/3337)
 
 - Heads:
-  - [CenterPoint [CVPR 2021]](https://openaccess.thecvf.com/content/CVPR2021/html/Yin_Center-Based_3D_Object_Detection_and_Tracking_CVPR_2021_paper.html)
-
   - [PointPillars [CVPR 2019]](https://openaccess.thecvf.com/content_CVPR_2019/html/Lang_PointPillars_Fast_Encoders_for_Object_Detection_From_Point_Clouds_CVPR_2019_paper.html)
+  - [CenterPoint [CVPR 2021]](https://openaccess.thecvf.com/content/CVPR2021/html/Yin_Center-Based_3D_Object_Detection_and_Tracking_CVPR_2021_paper.html)
 
 ## Supported Datasets
 
