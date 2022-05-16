@@ -24,51 +24,53 @@ from torchbox3d.math.ops.index import (
 
 
 @torch.jit.script
-def normal2(p1: Tensor, p2: Tensor, eps: float = EPS) -> Tensor:
+def normal2(
+    coordinate_uv_start: Tensor, coordinate_uv_end: Tensor, eps: float = EPS
+) -> Tensor:
     """Compute the 2D normal vector to the line defined by (p1,p2).
 
     Args:
-        p1: (2,) Line start point.
-        p2: (2,) Line end point.
+        coordinate_uv_start: (2,) Line start point.
+        coordinate_uv_end: (2,) Line end point.
         eps: Smoothing parameter to prevent divide by zero.
 
     Returns:
         The vector normal to the line defined by (p1,p2).
     """
-    grad = p2 - p1
-    du, dv = grad[0], grad[1]
-    normal = torch.stack([-dv, du], dim=-1).float()
+    grad_uv = coordinate_uv_end - coordinate_uv_start
+    delta_u, delta_v = grad_uv[0], grad_uv[1]
+    normal = torch.stack([-delta_v, delta_u], dim=-1).float()
     unit_normal: Tensor = normal / torch.linalg.norm(normal).clamp(eps, None)
     return unit_normal
 
 
 @torch.jit.script
-def linear_interpolation(points: Tensor, num_samples: int) -> Tensor:
+def linear_interpolation(coordinates: Tensor, num_samples: int) -> Tensor:
     """Linearly interpolate two points.
 
     Args:
-        points: (N,2) Points to interpolate between.
+        coordinates: (N,2) Coordinates to interpolate.
         num_samples: The number of uniform samples between points.
 
     Returns:
         The interpolant sampled uniformly over the interval.
     """
     interp: Tensor = F.interpolate(
-        points, size=num_samples, mode="linear", align_corners=True
+        coordinates, size=num_samples, mode="linear", align_corners=True
     ).squeeze()
     return interp
 
 
 @torch.jit.script
 def clip_to_viewport(
-    uv: Tensor, tex: Tensor, width_px: int, height_px: int
+    coordinates_uv: Tensor, tex: Tensor, width_px: int, height_px: int
 ) -> Tuple[Tensor, Tensor, Tensor]:
     """Clip the points to the viewport.
 
     Reference: https://en.wikipedia.org/wiki/Viewport
 
     Args:
-        uv: (N,2) UV coordinates.
+        coordinates_uv: (N,2) UV coordinates.
             Reference: https://en.wikipedia.org/wiki/UV_mapping
         tex: (N,3) Texture intensity values.
         width_px: Width of the viewport in pixels.
@@ -77,9 +79,15 @@ def clip_to_viewport(
     Returns:
         The clipped UV coordinates and texture, and the boolean validity mask.
     """
-    size = torch.as_tensor([width_px, height_px], device=uv.device)
-    is_inside_viewport = torch.logical_and(uv >= 0, uv < size).all(dim=-1)
-    return uv[is_inside_viewport], tex[is_inside_viewport], is_inside_viewport
+    size = torch.as_tensor([width_px, height_px], device=coordinates_uv.device)
+    is_inside_viewport = torch.logical_and(
+        coordinates_uv >= 0, coordinates_uv < size
+    ).all(dim=-1)
+    return (
+        coordinates_uv[is_inside_viewport],
+        tex[is_inside_viewport],
+        is_inside_viewport,
+    )
 
 
 @torch.jit.script
@@ -110,8 +118,8 @@ def blend(
 
 @torch.jit.script
 def circles(
-    uvz: Tensor,
-    tex: Tensor,
+    coordinates_uvz: Tensor,
+    texture: Tensor,
     img: Tensor,
     radius: int = 10,
     antialias: bool = True,
@@ -127,8 +135,8 @@ def circles(
         +u
 
     Args:
-        uvz: (N,3) Texture coordinates.
-        tex: (N,3) Texture pixel intensities.
+        coordinates_uvz: (N,3) Texture coordinates.
+        texture: (N,3) Texture pixel intensities.
         img: (...,H,W,3) Image.
         radius: Radius of the circle.
         antialias: Boolean flag to enable anti-aliasing.
@@ -136,41 +144,48 @@ def circles(
     Returns:
         (...,H,W,3) Image with circles overlaid.
     """
-    uv = uvz[..., :2].flatten(0, -2)
+    uv = coordinates_uvz[..., :2].flatten(0, -2)
     ogrid_uv = ogrid_sparse_neighborhoods(uv, [radius, radius])
-    tex = tex.repeat_interleave(int(radius**2), dim=0)
+    texture = texture.repeat_interleave(int(radius**2), dim=0)
 
     if antialias:
         mu = uv.repeat_interleave(int(radius**2), 0)
         sigma = torch.ones_like(mu[:, 0:1])
         alpha = gaussian_kernel(ogrid_uv, mu, sigma).prod(dim=-1, keepdim=True)
-        tex *= alpha
+        texture *= alpha
 
-    H = img.shape[-2]
-    W = img.shape[-1]
-    ogrid_uv, tex, _ = clip_to_viewport(ogrid_uv, tex, W, H)
+    height = img.shape[-2]
+    width = img.shape[-1]
+    ogrid_uv, texture, _ = clip_to_viewport(ogrid_uv, texture, width, height)
 
-    raveled_indices = ravel_multi_index(ogrid_uv, [W, H])
+    raveled_indices = ravel_multi_index(ogrid_uv, [width, height])
     out: Tuple[Tensor, Tensor] = torch.unique(
         raveled_indices, return_inverse=True
     )
     raveled_indices, inverse_indices = out
 
-    index = inverse_indices[:, None].repeat(1, tex.shape[1])
-    tex = torch.scatter_reduce(tex, dim=0, index=index, reduce="amax")
-    unraveled_coords = unravel_index(raveled_indices, [W, H])
-    u, v = unraveled_coords[:, 0], unraveled_coords[:, 1]
-    blended_pixels = blend(
-        tex.flatten(0, -2).mT, img.view(-1, H, W)[:, u, v], alpha=1.0
+    index = inverse_indices[:, None].repeat(1, texture.shape[1])
+    texture = torch.scatter_reduce(texture, dim=0, index=index, reduce="amax")
+    unraveled_coords = unravel_index(raveled_indices, [width, height])
+    coordinates_u, coordinates_v = (
+        unraveled_coords[:, 0],
+        unraveled_coords[:, 1],
     )
-    img.view(-1, H, W)[:, u, v] = blended_pixels
+    blended_pixels = blend(
+        texture.flatten(0, -2).mT,
+        img.view(-1, height, width)[:, coordinates_u, coordinates_v],
+        alpha=1.0,
+    )
+    img.view(-1, height, width)[
+        :, coordinates_u, coordinates_v
+    ] = blended_pixels
     return img
 
 
 @torch.jit.script
 def line2(
-    p1: Tensor,
-    p2: Tensor,
+    coordinates_uv_start: Tensor,
+    coordinates_uv_end: Tensor,
     color: Tensor,
     img: Tensor,
     width_px: int = 5,
@@ -195,8 +210,8 @@ def line2(
         +u
 
     Args:
-        p1: (2,) Line starting point (uv coordinates).
-        p2: (2,) Line ending point (uv coordinates).
+        coordinates_uv_start: (2,) Line starting point (uv coordinates).
+        coordinates_uv_end: (2,) Line ending point (uv coordinates).
         color: (3,) 3-channel color.
         img: (3,H,W) 3-channel image.
         width_px: Thickness of the line (in pixels).
@@ -211,16 +226,18 @@ def line2(
     Returns:
         The image with a line drawn from p1 to p2.
     """
-    points = torch.stack([p1, p2], dim=0)
+    coordinates_uv = torch.stack(
+        [coordinates_uv_start, coordinates_uv_end], dim=0
+    )
 
-    line = p2 - p1
+    line = coordinates_uv_end - coordinates_uv_start
     unit_line: Tensor = line / torch.linalg.norm(line).clamp(eps, None)
 
     # Adjust endpoints to properly enclose meeting endpoints.
-    points[0] -= unit_line * width_px
-    points[1] += unit_line * width_px
+    coordinates_uv[0] -= unit_line * width_px
+    coordinates_uv[1] += unit_line * width_px
 
-    unit_normal = normal2(p1, p2)
+    unit_normal = normal2(coordinates_uv_start, coordinates_uv_end)
     offsets = torch.stack((-unit_normal, unit_normal), dim=0)
     offsets = (offsets * width_px).round()
     offsets = offsets.T[None]
@@ -229,7 +246,7 @@ def line2(
     width_uv = linear_interpolation(
         offsets, num_samples=(width_density * width_px)
     )
-    width_uv = width_uv[..., None] + points.T[:, None]
+    width_uv = width_uv[..., None] + coordinates_uv.T[:, None]
     width_uv.view(-1, 2)[:, 0].clamp_(0, img.shape[-2] - 1)
     width_uv.view(-1, 2)[:, 1].clamp_(0, img.shape[-1] - 1)
 
@@ -250,7 +267,7 @@ def line2(
 
 @torch.jit.script
 def polygon(
-    vertices: Tensor,
+    vertices_uv: Tensor,
     edge_indices: Tensor,
     colors: Tensor,
     img: Tensor,
@@ -277,14 +294,14 @@ def polygon(
         # Edges consist of [(1, 1), (2, 2)] and [(3, 3), (1, 1)].
 
     Args:
-        vertices: (N,2) Vertices of the polygon.
+        vertices_uv: (N,2) Vertices of the polygon.
         edge_indices: (K,2) Vertex indices which construct an edge.
         colors: (len(edges),3) 3-channel colors of the polygon edges.
         img: (3,H,W) 3-channel image.
         width_px: Width of the polygon lines.
     """
     num_edges = len(edge_indices)
-    edges = vertices[edge_indices]
+    edges = vertices_uv[edge_indices]
     for i in range(num_edges):
         color = colors[i]
         edge = edges[i]
