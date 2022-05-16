@@ -88,17 +88,27 @@ def to_tensorboard(
 
 def _draw_cuboids(
     cuboids: Cuboids,
-    bev: Tensor,
+    img: Tensor,
     grid: RegularGrid,
     color: Tuple[int, int, int],
 ) -> Tensor:
-    """Draw cuboids on a bird's-eye view image."""
+    """Draw cuboids on a bird's-eye view image.
+
+    Args:
+        cuboids: Cuboids representing objects.
+        img: (C,H,W) Image tensor.
+        grid: Grid model class.
+        color: (3,) RGB color.
+
+    Returns:
+        (C,H,W) Image with cuboids drawn.
+    """
     if len(cuboids) == 0:
-        return bev
+        return img
     cuboids_list = cuboids.cuboid_list()
     cuboids = cuboids_list[0]
-    bev = cuboids.draw_on_bev(grid, bev, color=color)
-    return bev
+    img = cuboids.draw_on_bev(grid, img, color=color)
+    return img
 
 
 def tensorboard_log_img(name: str, img: Tensor, trainer: Trainer) -> None:
