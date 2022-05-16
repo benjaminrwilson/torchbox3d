@@ -144,14 +144,16 @@ def circles(
     Returns:
         (...,H,W,3) Image with circles overlaid.
     """
-    uv = coordinates_uvz[..., :2].flatten(0, -2)
-    ogrid_uv = ogrid_sparse_neighborhoods(uv, [radius, radius])
+    coordinates_uv = coordinates_uvz[..., :2].flatten(0, -2)
+    ogrid_uv = ogrid_sparse_neighborhoods(coordinates_uv, [radius, radius])
     texture = texture.repeat_interleave(int(radius**2), dim=0)
 
     if antialias:
-        mu = uv.repeat_interleave(int(radius**2), 0)
-        sigma = torch.ones_like(mu[:, 0:1])
-        alpha = gaussian_kernel(ogrid_uv, mu, sigma).prod(dim=-1, keepdim=True)
+        means = coordinates_uv.repeat_interleave(int(radius**2), 0)
+        sigmas = torch.ones_like(means[:, 0:1])
+        alpha = gaussian_kernel(ogrid_uv, means, sigmas).prod(
+            dim=-1, keepdim=True
+        )
         texture *= alpha
 
     height = img.shape[-2]
