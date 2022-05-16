@@ -1,4 +1,4 @@
-"""A wrapper for the `SparseTensor` object in the `torchsparse` library."""
+"""Sparse tensor class."""
 
 from __future__ import annotations
 
@@ -6,13 +6,15 @@ from dataclasses import dataclass
 from typing import Any, ItemsView, Tuple, Union
 
 import torch
-from torch import Size, Tensor, as_tensor
+from torch import Size, Tensor
 
 from torchbox3d.math.ops.index import scatter_nd
 
 
 @dataclass
 class SparseTensor:
+    """Class representing a sparse set of indices and values."""
+
     values: Tensor
     indices: Tensor
     counts: Tensor
@@ -25,14 +27,15 @@ class SparseTensor:
             size: The size of the dense output tensor.
 
         Returns:
-            (B,C*D,H,W) Dense tensor of spatial features.
+            (num_batches,num_channels*height,length,width) Dense tensor
+                of spatial features.
         """
         length, width, height, num_batches, _ = size
 
         indices = self.indices
         indices[:, :3] = torch.div(
             indices[:, :3],
-            as_tensor(self.stride, device=self.values.device),
+            torch.as_tensor(self.stride, device=self.values.device),
             rounding_mode="trunc",
         )
         indices[:, 0] = indices[:, 0].clamp(0, width - 1)
@@ -41,7 +44,7 @@ class SparseTensor:
 
         dense = torch.zeros(size)
         dense = scatter_nd(
-            indices, self.F, list(size), [3, 4, 2, 0, 1]
+            indices, self.values, list(size), [3, 4, 2, 0, 1]
         ).reshape(num_batches, -1, width, length)
         return dense
 
@@ -57,12 +60,12 @@ class SparseTensor:
 
     def cpu(self) -> SparseTensor:
         """Move all of the tensors to the cpu."""
-        for k, v in self.items():
-            if isinstance(v, Tensor):
-                setattr(self, k, v.cpu())
-            elif k in set(["cmaps", "kmaps"]):
+        for attribute_name, attribute in self.items():
+            if isinstance(attribute, Tensor):
+                setattr(self, attribute_name, attribute.cpu())
+            elif attribute_name in set(["cmaps", "kmaps"]):
                 cpu_tensors = {}
-                for key, val in v.items():
+                for key, val in attribute.items():
                     if isinstance(val, list):
                         cpu_tensors[key] = [
                             x.cpu() if isinstance(x, Tensor) else x
@@ -70,5 +73,5 @@ class SparseTensor:
                         ]
                     else:
                         cpu_tensors[key] = val.cpu()
-                setattr(self, k, cpu_tensors)
+                setattr(self, attribute_name, cpu_tensors)
         return self

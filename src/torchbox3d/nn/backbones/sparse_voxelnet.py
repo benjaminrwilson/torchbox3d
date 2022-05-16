@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Union
 
 import torch
+import torchsparse
 from pytorch_lightning import LightningModule
 from torch import Tensor
 from torch.nn import ModuleDict, Sequential
@@ -87,19 +88,23 @@ class SparseVoxelNet(LightningModule):
         )
 
     def forward(  # type: ignore[override]
-        self, x: RegularGridData
+        self, grid_data: RegularGridData
     ) -> Dict[str, Union[SparseTensor, Tensor]]:
         """Compute Sparse Voxelnet forward pass.
 
         Args:
-            x: Input data.
+            grid_data: Grid data.
 
         Returns:
             Dense representation constructed from the convolved,
                 sparse outputs.
         """
-        x.cells.C = x.cells.C.int()
-        outputs = {"out": x.cells}
+        outputs = {
+            "out": torchsparse.SparseTensor(
+                feats=grid_data.cells.values,
+                coords=grid_data.cells.indices.int(),
+            )
+        }
         out: SparseTensor = outputs["out"]
         for layer_name, layer in self.layers.items():
             outputs["out"] = layer(outputs["out"])
@@ -110,21 +115,18 @@ class SparseVoxelNet(LightningModule):
             )
 
         out = outputs["out"]
-        out = SparseTensor(out.F, out.C, out.s)
+        counts = torch.ones_like(out.C[..., 0])
+        out = SparseTensor(
+            indices=out.C, values=out.F, counts=counts, stride=out.s
+        )
 
-        vgrid_shape = torch.as_tensor(x.grid.grid_size)
-        stride = torch.as_tensor(out.s)
+        vgrid_shape = torch.as_tensor(grid_data.grid.grid_size)
+        stride = torch.as_tensor(out.stride)
         dims: List[int] = (vgrid_shape / stride).int().tolist()
 
         # Width, length, height.
-        W, L, H = dims[0], dims[1], dims[2]
-
-        # Dimension size.
-        D = out.F.shape[-1]
-
-        # Batch size.
-        B = int(out.C[:, -1].max().item() + 1)
-
-        # Size.
-        size = torch.Size([W, L, H, B, D])
+        width, length, height = dims[0], dims[1], dims[2]
+        num_channels = out.values.shape[-1]
+        num_batches = int(out.indices[:, -1].max().item() + 1)
+        size = torch.Size([width, length, height, num_batches, num_channels])
         return outputs | {"out": out.to_dense(size=size)}
