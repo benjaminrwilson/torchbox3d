@@ -1,6 +1,6 @@
 """Methods to help visualize data during training."""
 
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
 from pytorch_lightning import Trainer
