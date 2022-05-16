@@ -131,6 +131,7 @@ class SplatterHeatmap:
         targets = grid_data.cuboids.params.clone()
         indices_ij, mask = grid_data.grid.transform_from(targets[..., :2])
         indices_ij = indices_ij[mask]
+
         targets = targets[mask]
         offsets = offsets[mask]
         task_ids = task_ids[mask]
