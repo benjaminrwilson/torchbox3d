@@ -17,8 +17,8 @@ class Voxelize:
     """Construct a voxelization transformation.
 
     Args:
-        min_world_coordinates_m: (3,) Minimum coordinates in meters.
-        max_world_coordinates_m: (3,) Maximum coordinates in meters.
+        min_world_coordinates_m: (2,) Minimum world coordinates in meters.
+        max_world_coordinates_m: (2,) Maximum world coordinates in meters.
         delta_m_per_cell: (3,) Ratio of meters to cell in meters.
         cluster_type: Cluster type used in the transformation.
     """

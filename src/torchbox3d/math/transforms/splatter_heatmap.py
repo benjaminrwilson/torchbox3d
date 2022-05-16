@@ -159,7 +159,7 @@ class SplatterHeatmap:
             encoding = encoding[inv]
             scores = scatter_gaussian_targets(
                 task_ids=task_ids,
-                indices=xy[inv],
+                indices_ij=xy[inv],
                 dims_lw=lw[inv],
                 scores=scores,
                 shape=[L, W],
@@ -194,7 +194,7 @@ class SplatterHeatmap:
 @torch.jit.script
 def scatter_gaussian_targets(
     task_ids: Tensor,
-    indices: Tensor,
+    indices_ij: Tensor,
     dims_lw: Tensor,
     scores: Tensor,
     shape: List[int],
@@ -203,23 +203,23 @@ def scatter_gaussian_targets(
 
     Args:
         task_ids: (N,1) Tensor of task ids (integer).
-        indices: (N,2) Tensor of the xy object centers.
+        indices_ij: (N,2) Tensor of the xy object centers.
         dims_lw: (N,2) Tensor of length and width of the objects.
         scores: (N,1) Tensor of confidence scores.
-        shape: (3,) Shape of the voxel grid.
+        shape: (3,) Shape of the grid.
 
     Returns:
-        The BEV plane with Gaussian targets.
+        The bird's-eye view plane scattered with Gaussian targets.
     """
     unique_task_ids: Tensor = torch.unique(task_ids)
     for _, task_id in enumerate(unique_task_ids):
         mask = task_ids == task_id
-        task_xy = indices[mask]
+        task_indices_ij = indices_ij[mask]
         sigma = dims_lw[mask] / 6
 
         sigma = torch.max(sigma, dim=-1, keepdim=True)[0]
         response, uv_coordinates = ogrid_sparse_gaussian(
-            task_xy, sigma, radius=3
+            task_indices_ij, sigma, radius=3
         )
         uv_coordinates, response, _ = clip_to_viewport(
             uv_coordinates, response, shape[0], shape[1]
@@ -237,6 +237,11 @@ def scatter_gaussian_targets(
             index=index,
             reduce="amax",
         ).mT
-        u, v = uv_coordinates[..., 0], uv_coordinates[..., 1]
-        scores[task_id : task_id + 1, u, v] = reduced_response
+        u_coordinates, v_coordinates = (
+            uv_coordinates[..., 0],
+            uv_coordinates[..., 1],
+        )
+        scores[
+            task_id : task_id + 1, u_coordinates, v_coordinates
+        ] = reduced_response
     return scores
