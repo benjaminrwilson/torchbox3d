@@ -110,13 +110,17 @@ def convert_world_coordinates_to_grid(
     if isinstance(grid_size, List):
         grid_size = torch.as_tensor(grid_size, device=coordinates_m.device)
 
-    D = min(coordinates_m.shape[-1], len(min_world_coordinates_m))
+    num_dimensions = min(coordinates_m.shape[-1], len(min_world_coordinates_m))
     offset_m = torch.zeros_like(coordinates_m[0])
-    offset_m[:D] = torch.as_tensor(min_world_coordinates_m[:D]).abs()
+    offset_m[:num_dimensions] = torch.as_tensor(
+        min_world_coordinates_m[:num_dimensions]
+    ).abs()
 
-    indices = (coordinates_m[..., :D] + offset_m[:D]) / delta_m_per_cell[:D]
+    indices = (
+        coordinates_m[..., :num_dimensions] + offset_m[:num_dimensions]
+    ) / delta_m_per_cell[:num_dimensions]
     if not align_corners:
-        indices[..., :D] += 0.5
+        indices[..., :num_dimensions] += 0.5
     indices = indices.long()
 
     upper = [float(x) for x in grid_size]
