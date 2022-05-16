@@ -27,10 +27,6 @@ class TensorStruct:
                 setattr(self, k, v.cpu())
         return self
 
-    def __repr__(self) -> str:
-        """Return the string representation of the data."""
-        return super().__repr__()
-
     @classmethod
     def cat(cls: Type[T], data_list: Sequence[T]) -> T:
         """Concatenate all of the tensors in the object.
@@ -43,8 +39,8 @@ class TensorStruct:
         """
         output: DefaultDict[str, Any] = defaultdict(list)
         for datum in data_list:
-            for k, v in datum.items():
-                if v is not None:
-                    output[k].append(v)
+            for key, value in datum.items():
+                if value is not None:
+                    output[key].append(value)
         kwargs = {k: torch.cat(v, dim=0) for k, v in output.items()}
         return cls(**kwargs)

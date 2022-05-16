@@ -150,15 +150,15 @@ class Cuboids(TensorStruct):
 
     def draw_on_bev(
         self,
-        voxel_grid: RegularGrid,
-        bev: Tensor,
+        grid: RegularGrid,
+        img: Tensor,
         color: Tuple[int, int, int] = (0, 255, 0),
     ) -> Tensor:
         """Draw a set of bounding boxes on a BEV image.
 
         Args:
-            voxel_grid: Object describing voxel grid characteristics.
-            bev: (3,H,W) Bird's-eye view image.
+            grid: Object describing voxel grid characteristics.
+            img: (3,H,W) Bird's-eye view image.
             color: 3-channel color (RGB or BGR).
 
         Returns:
@@ -171,18 +171,18 @@ class Cuboids(TensorStruct):
                 color,
                 color,
             ],
-            device=bev.device,
-            dtype=bev.dtype,
+            device=img.device,
+            dtype=img.dtype,
         )
         edge_indices = torch.as_tensor(
-            [[0, 1], [1, 2], [2, 3], [3, 0]], device=bev.device
+            [[0, 1], [1, 2], [2, 3], [3, 0]], device=img.device
         )
         vertices_uv_list = self.vertices_m[:, [2, 3, 7, 6], :2]
         for i, vertices_uv in enumerate(vertices_uv_list):
             (
                 vertices_uv,
                 mask,
-            ) = voxel_grid.transform_from(vertices_uv)
+            ) = grid.transform_from(vertices_uv)
 
             vertices_uv = vertices_uv.float()
             colors_uint8 = (colors * self.scores[i]).round().byte()
@@ -190,7 +190,7 @@ class Cuboids(TensorStruct):
                 vertices_uv,
                 edge_indices[mask],
                 colors=colors_uint8,
-                img=bev,
+                img=img,
                 width_px=1,
             )
-        return bev
+        return img
