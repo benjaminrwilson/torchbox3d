@@ -112,8 +112,8 @@ def mgrid(intervals: List[List[int]]) -> Tensor:
         The constructed meshgrid.
     """
     tensor_list = [torch.arange(start, end) for start, end in intervals]
-    mgrid = torch.meshgrid(tensor_list, indexing="ij")
-    return torch.stack(mgrid, dim=0)
+    meshgrid = torch.meshgrid(tensor_list, indexing="ij")
+    return torch.stack(meshgrid, dim=0)
 
 
 @torch.jit.script
@@ -133,9 +133,9 @@ def ogrid(intervals: List[List[int]]) -> Tensor:
         The sparse representation of the meshgrid.
     """
     tensor_list = [torch.arange(start, end) for start, end in intervals]
-    mgrid = torch.meshgrid(tensor_list, indexing="ij")
-    ogrid = torch.stack(mgrid, dim=-1).view(-1, len(intervals))
-    return ogrid
+    meshgrid = torch.meshgrid(tensor_list, indexing="ij")
+    sparse_meshgrid = torch.stack(meshgrid, dim=-1).view(-1, len(intervals))
+    return sparse_meshgrid
 
 
 @torch.jit.script

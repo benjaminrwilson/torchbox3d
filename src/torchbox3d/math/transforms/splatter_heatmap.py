@@ -1,4 +1,4 @@
-"""Encode and scatter objects as soft-targets (Gaussian) over an xy grid."""
+"""Encode and scatter objects as soft-targets (Gaussian) over a grid."""
 
 from __future__ import annotations
 
@@ -145,12 +145,12 @@ class SplatterHeatmap:
         encoding = encode(targets)
 
         downsampled_grid = grid_data.grid.downsample(self.network_stride)
-        L, W = downsampled_grid[0], downsampled_grid[1]
+        length, width = downsampled_grid[0], downsampled_grid[1]
         indices_ij = targets[..., :2].int()
         dimensions_lw = targets[..., 3:5]
 
-        T = len(self.tasks_cfg)
-        scores = torch.zeros((T, L, W))
+        num_tasks = len(self.tasks_cfg)
+        scores = torch.zeros((num_tasks, length, width))
         indices_tij = torch.cat((task_ids[:, None], indices_ij), dim=1)
 
         if len(indices_ij) > 0:
@@ -165,24 +165,30 @@ class SplatterHeatmap:
                 indices_ij=indices_ij[inv],
                 dims_lw=dimensions_lw[inv],
                 scores=scores,
-                grid_size=[L, W],
+                grid_size=[length, width],
             )
 
         perm = [0, 3, 1, 2]
         offsets = scatter_nd(
-            indices_tij, src=offsets, shape=[T, L, W, 1], perm=perm
+            indices_tij,
+            src=offsets,
+            shape=[num_tasks, length, width, 1],
+            perm=perm,
         )[None]
 
         mask = scatter_nd(
             indices_tij,
             torch.ones_like(task_ids, dtype=torch.bool),
-            shape=[T, L, W, 1],
+            shape=[num_tasks, length, width, 1],
             perm=perm,
         )[None]
 
-        R = encoding.shape[1]
+        num_regressands = encoding.shape[1]
         encoding = scatter_nd(
-            indices_tij, encoding, shape=[T, L, W, R], perm=perm
+            indices_tij,
+            encoding,
+            shape=[num_tasks, length, width, num_regressands],
+            perm=perm,
         )[None]
 
         grid_data.targets = GridTargets(

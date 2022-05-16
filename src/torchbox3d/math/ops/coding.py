@@ -27,10 +27,10 @@ def _encode_lwh(cuboids: Tensor) -> Tensor:
         The encoded ground truth annotations.
     """
     # Number of cuboids.
-    N = cuboids.shape[0]
+    num_cuboids = cuboids.shape[0]
 
     # Intialize box parameterization.
-    encoding = torch.zeros((N, 8))
+    encoding = torch.zeros((num_cuboids, 8))
 
     # Calculate grid offset.
     encoding[..., :2] = cuboids[..., :2] - cuboids[..., :2].int()
@@ -66,7 +66,7 @@ def encode(cuboids: Tensor) -> Tensor:
 
 def decode(
     task_outputs_list: List[TaskOutputs],
-    voxel_grid: RegularGrid,
+    grid: RegularGrid,
     network_stride: int,
     max_k: int,
     to_nonconsecutive: Tensor,
@@ -75,7 +75,7 @@ def decode(
 
     Args:
         task_outputs_list: Network output.
-        voxel_grid: Voxel grid parameters.
+        grid: Voxel grid parameters.
         network_stride: Network stride.
         max_k: Max number of predictions to keep after decoding.
         to_nonconsecutive: (N,2) Tensor mapping consecutive class ids
@@ -85,13 +85,13 @@ def decode(
         The predicted cuboids.
     """
     return _decode_lwh(
-        task_outputs_list, voxel_grid, network_stride, max_k, to_nonconsecutive
+        task_outputs_list, grid, network_stride, max_k, to_nonconsecutive
     )
 
 
 def _decode_lwh(
     task_outputs_list: List[TaskOutputs],
-    voxel_grid: RegularGrid,
+    grid: RegularGrid,
     network_stride: int,
     max_k: int,
     to_nonconsecutive: Tensor,
@@ -100,7 +100,7 @@ def _decode_lwh(
 
     Args:
         task_outputs_list: Network output.
-        voxel_grid: Voxel grid parameters.
+        grid: Voxel grid parameters.
         network_stride: Network stride.
         max_k: Max number of predictions to keep after decoding.
         to_nonconsecutive: (N,2) Tensor mapping consecutive class ids
@@ -112,17 +112,17 @@ def _decode_lwh(
     task_outputs = task_outputs_list[0]
     device = task_outputs.regressands.device
 
-    H = task_outputs.regressands.shape[-2]
-    W = task_outputs.regressands.shape[-1]
-    grid_idx = mgrid([[0, H], [0, W]])[None].float().to(device)
+    height = task_outputs.regressands.shape[-2]
+    width = task_outputs.regressands.shape[-1]
+    grid_idx = mgrid([[0, height], [0, width]])[None].float().to(device)
 
     delta_m_per_cell = torch.as_tensor(
-        voxel_grid.delta_m_per_cell[:2],
+        grid.delta_m_per_cell[:2],
         dtype=task_outputs.logits.dtype,
         device=task_outputs.logits.device,
     )[None, :, None, None]
     grid_offset = torch.as_tensor(
-        voxel_grid.grid_offset_m[:2],
+        grid.grid_offset_m[:2],
         dtype=task_outputs.logits.dtype,
         device=task_outputs.logits.device,
     )[None, :, None, None]
@@ -137,7 +137,7 @@ def _decode_lwh(
 
         # Split up the regressands.
         offset = data.regressands[:, :2]
-        z = data.regressands[:, 2:3]
+        coordinates_z = data.regressands[:, 2:3]
         dim_log = data.regressands[:, 3:6]
         sin = data.regressands[:, 6:7]
         cos = data.regressands[:, 7:8]
@@ -162,26 +162,26 @@ def _decode_lwh(
         ctrs -= grid_offset
         dims = torch.exp(dim_log)
 
-        params = torch.cat((ctrs, z, dims, quat), dim=1)
+        params = torch.cat((ctrs, coordinates_z, dims, quat), dim=1)
         task_offset += data.logits.shape[1]
 
         scores = nms2d(scores, (3, 3))
         scores, ranks = scores.permute(0, 3, 2, 1).flatten(1).topk(max_k)
         scores = scores.view(-1, 1)
 
-        R = params.shape[1]
-        index = ranks[..., None].repeat_interleave(R, dim=-1)
+        num_regressands = params.shape[1]
+        index = ranks[..., None].repeat_interleave(num_regressands, dim=-1)
 
         params = (
             params.permute(0, 3, 2, 1).flatten(1, 2).gather(1, index)
-        ).view(-1, R)
+        ).view(-1, num_regressands)
 
         offsets = (
             offsets.permute(0, 3, 2, 1).flatten(1).gather(1, ranks)
         ).view(-1, 1)
 
-        B = len(ranks)
-        batch_index = torch.arange(0, B).repeat_interleave(max_k)
+        num_batches = len(ranks)
+        batch_index = torch.arange(0, num_batches).repeat_interleave(max_k)
 
         # Convert consecutive ids to original objects ids.
         categories = to_nonconsecutive[offsets]
