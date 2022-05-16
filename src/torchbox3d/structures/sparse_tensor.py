@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ItemsView, Tuple, Union
+from typing import Tuple, Union
 
 import torch
 from torch import Size, Tensor
 
 from torchbox3d.math.ops.index import scatter_nd
+from torchbox3d.structures.meta import TensorStruct
 
 
 @dataclass
-class SparseTensor:
+class SparseTensor(TensorStruct):
     """Class representing a sparse set of indices and values."""
 
     values: Tensor
@@ -53,25 +54,3 @@ class SparseTensor:
         return SparseTensor(
             self.values.clone(), self.indices.clone(), self.stride
         )
-
-    def items(self) -> ItemsView[str, Any]:
-        """Return a view of the attribute names and values."""
-        return ItemsView({k: v for k, v in self.__dict__.items()})
-
-    def cpu(self) -> SparseTensor:
-        """Move all of the tensors to the cpu."""
-        for attribute_name, attribute in self.items():
-            if isinstance(attribute, Tensor):
-                setattr(self, attribute_name, attribute.cpu())
-            elif attribute_name in set(["cmaps", "kmaps"]):
-                cpu_tensors = {}
-                for key, val in attribute.items():
-                    if isinstance(val, list):
-                        cpu_tensors[key] = [
-                            x.cpu() if isinstance(x, Tensor) else x
-                            for x in val
-                        ]
-                    else:
-                        cpu_tensors[key] = val.cpu()
-                setattr(self, attribute_name, cpu_tensors)
-        return self
