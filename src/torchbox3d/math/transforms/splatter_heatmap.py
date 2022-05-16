@@ -129,7 +129,9 @@ class SplatterHeatmap:
         grid_data.cuboids = cuboids
 
         targets = grid_data.cuboids.params.clone()
-        indices_ij, mask = grid_data.grid.transform_from(targets[..., :2])
+        indices_ij, mask = grid_data.grid.convert_world_coordinates_to_grid(
+            targets[..., :2]
+        )
         indices_ij = indices_ij[mask]
 
         targets = targets[mask]
@@ -163,7 +165,7 @@ class SplatterHeatmap:
                 indices_ij=indices_ij[inv],
                 dims_lw=dimensions_lw[inv],
                 scores=scores,
-                shape=[L, W],
+                grid_size=[L, W],
             )
 
         perm = [0, 3, 1, 2]
@@ -198,7 +200,7 @@ def scatter_gaussian_targets(
     indices_ij: Tensor,
     dims_lw: Tensor,
     scores: Tensor,
-    shape: List[int],
+    grid_size: List[int],
 ) -> Tensor:
     """Scatter the Gaussian targets onto the BEV plane.
 
@@ -207,7 +209,7 @@ def scatter_gaussian_targets(
         indices_ij: (N,2) Tensor of the xy object centers.
         dims_lw: (N,2) Tensor of length and width of the objects.
         scores: (N,1) Tensor of confidence scores.
-        shape: (3,) Shape of the grid.
+        grid_size: (3,) Size of the grid.
 
     Returns:
         The bird's-eye view plane scattered with Gaussian targets.
@@ -223,15 +225,15 @@ def scatter_gaussian_targets(
             task_indices_ij, sigma, radius=3
         )
         uv_coordinates, response, _ = clip_to_viewport(
-            uv_coordinates, response, shape[0], shape[1]
+            uv_coordinates, response, grid_size[0], grid_size[1]
         )
-        raveled_indices = ravel_multi_index(uv_coordinates, shape)
+        raveled_indices = ravel_multi_index(uv_coordinates, grid_size)
         out: Tuple[Tensor, Tensor] = torch.unique(
             raveled_indices, return_inverse=True
         )
         raveled_indices, inverse_indices = out
         index = inverse_indices[:, None]
-        uv_coordinates = unravel_index(raveled_indices, shape=shape)
+        uv_coordinates = unravel_index(raveled_indices, shape=grid_size)
         reduced_response = torch.scatter_reduce(
             response,
             dim=0,

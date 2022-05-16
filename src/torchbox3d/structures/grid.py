@@ -1,4 +1,4 @@
-"""An N-Dimensional grid class."""
+"""Spatially structured grid classes."""
 
 from __future__ import annotations
 
@@ -30,12 +30,12 @@ class RegularGrid:
     delta_m_per_cell: Tuple[float, ...]
 
     def __post_init__(self) -> None:
-        """Validate the NDGrid sizes."""
+        """Validate the instance variables."""
         d_min = len(self.min_world_coordinates_m)
         d_max = len(self.max_world_coordinates_m)
         d_delta = len(self.delta_m_per_cell)
 
-        if d_min != d_max and d_max != d_delta:
+        if d_min not in (d_delta, d_max):
             raise ValueError(
                 "`min_world_coordinates_m`, `max_world_coordinates_m` "
                 "and `delta_m_per_cell` "
@@ -82,7 +82,9 @@ class RegularGrid:
             indices += 0.5
         return indices.long()
 
-    def transform_from(self, coordinates_m: Tensor) -> Tuple[Tensor, Tensor]:
+    def convert_world_coordinates_to_grid(
+        self, coordinates_m: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         """Transform positions from world coordinates to grid coordinates (in meters).
 
         Args:
@@ -100,7 +102,14 @@ class RegularGrid:
         return indices, mask
 
     def downsample(self, stride: int) -> Tuple[int, ...]:
-        """Downsample the grid coordinates."""
+        """Downsample the grid coordinates.
+
+        Args:
+            stride: Downsampling factor.
+
+        Returns:
+            The downsampled grid size.
+        """
         downsampled_dims = [int(d / stride) for d in self.grid_size]
         return tuple(downsampled_dims)
 
