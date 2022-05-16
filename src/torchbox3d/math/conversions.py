@@ -11,7 +11,7 @@ from torchbox3d.math.ops.cluster import ClusterType, cluster_grid
 
 
 @torch.jit.script
-def denormalize_pixel_intensities(tensor: Tensor) -> Tensor:
+def normalized_to_denormalized_intensities(tensor: Tensor) -> Tensor:
     """Map intensities from [0,1] -> [0,255].
 
     Args:
@@ -27,57 +27,63 @@ def denormalize_pixel_intensities(tensor: Tensor) -> Tensor:
 
 
 @torch.jit.script
-def cart_to_sph(cart_xyz: Tensor) -> Tensor:
+def cartesian_to_spherical_coordinates(
+    coordinates_cartesian_m: Tensor,
+) -> Tensor:
     """Convert Cartesian coordinates to spherical coordinates.
 
     Reference:
         https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
 
     Args:
-        cart_xyz: Cartesian coordinates (x,y,z).
+        coordinates_cartesian: Cartesian coordinates (x,y,z) in meters.
 
     Returns:
         (N,3) Spherical coordinates (azimuth,inclination,radius).
     """
-    x = cart_xyz[..., 0]
-    y = cart_xyz[..., 1]
-    z = cart_xyz[..., 2]
+    coordinates_x = coordinates_cartesian_m[..., 0]
+    coordinates_y = coordinates_cartesian_m[..., 1]
+    coordinates_z = coordinates_cartesian_m[..., 2]
 
-    hypot_xy = x.hypot(y)
-    radius = hypot_xy.hypot(z)
-    inclination = z.atan2(hypot_xy)
-    azimuth = y.atan2(x)
-    sph = torch.stack((azimuth, inclination, radius), dim=-1)
-    return sph
+    hypot_xy = coordinates_x.hypot(coordinates_y)
+    radius = hypot_xy.hypot(coordinates_z)
+    inclination = coordinates_z.atan2(hypot_xy)
+    azimuth = coordinates_y.atan2(coordinates_x)
+    coordinates_spherical = torch.stack((azimuth, inclination, radius), dim=-1)
+    return coordinates_spherical
 
 
 @torch.jit.script
-def sph_to_cart(sph_rad: Tensor) -> Tensor:
+def spherical_to_cartesian_coordinates(
+    coordinates_spherical: Tensor,
+) -> Tensor:
     """Convert spherical coordinates to Cartesian coordinates.
 
     Reference:
         https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
 
     Args:
-        sph_rad: Spherical coordinates (azimuth,inclination,radius).
+        coordinates_spherical: Spherical coordinates (azimuth,inclination,radius).
 
     Returns:
         (N,3) Cartesian coordinates (x,y,z).
     """
-    azimuth = sph_rad[..., 0]
-    inclination = sph_rad[..., 1]
-    radius = sph_rad[..., 2]
+    coordinates_azimuth = coordinates_spherical[..., 0]
+    coordinates_inclination = coordinates_spherical[..., 1]
+    coordinates_radius = coordinates_spherical[..., 2]
 
-    rcos_inclination = radius * inclination.cos()
-    x = rcos_inclination * azimuth.cos()
-    y = rcos_inclination * azimuth.sin()
-    z = radius * inclination.sin()
-    cart_xyz = torch.stack((x, y, z), dim=-1)
-    return cart_xyz
+    rcos_inclination = coordinates_radius * coordinates_inclination.cos()
+    coordinates_x = rcos_inclination * coordinates_azimuth.cos()
+    coordinates_y = rcos_inclination * coordinates_azimuth.sin()
+    coordinates_z = coordinates_radius * coordinates_inclination.sin()
+    cartesian_coordinates_m = torch.stack(
+        (coordinates_x, coordinates_y, coordinates_z), dim=-1
+    )
+    return cartesian_coordinates_m
 
 
 # @torch.jit.script
-def convert_world_coordinates_to_grid(
+def world_to_grid_coordinates(
     coordinates_m: Tensor,
     min_world_coordinates_m: Union[List[float], Tensor],
     delta_m_per_cell: Union[List[float], Tensor],
@@ -108,13 +114,17 @@ def convert_world_coordinates_to_grid(
     if isinstance(grid_size, List):
         grid_size = torch.as_tensor(grid_size, device=coordinates_m.device)
 
-    D = min(coordinates_m.shape[-1], len(min_world_coordinates_m))
+    num_dimensions = min(coordinates_m.shape[-1], len(min_world_coordinates_m))
     offset_m = torch.zeros_like(coordinates_m[0])
-    offset_m[:D] = torch.as_tensor(min_world_coordinates_m[:D]).abs()
+    offset_m[:num_dimensions] = torch.as_tensor(
+        min_world_coordinates_m[:num_dimensions]
+    ).abs()
 
-    indices = (coordinates_m[..., :D] + offset_m[:D]) / delta_m_per_cell[:D]
+    indices = (
+        coordinates_m[..., :num_dimensions] + offset_m[:num_dimensions]
+    ) / delta_m_per_cell[:num_dimensions]
     if not align_corners:
-        indices[..., :D] += 0.5
+        indices[..., :num_dimensions] += 0.5
     indices = indices.long()
 
     upper = [float(x) for x in grid_size]
@@ -147,9 +157,8 @@ def voxelize(
 
     Returns:
         The voxelized indices, values, and the counts per voxel.
-
     """
-    indices, mask = convert_world_coordinates_to_grid(
+    indices, mask = world_to_grid_coordinates(
         coordinates_m,
         min_world_coordinates_m,
         delta_m_per_cell,

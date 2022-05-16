@@ -78,7 +78,12 @@ def read_sweep_data(
 
     coordinates_m = lidar[..., :3]
     values = lidar[..., 3:]
+    counts = torch.ones_like(values)
     datum = Data(
-        coordinates_m=coordinates_m, values=values, cuboids=cuboids, uuids=uuid
+        coordinates_m=coordinates_m,
+        values=values,
+        counts=counts,
+        cuboids=cuboids,
+        uuids=uuid,
     )
     return datum

@@ -1,4 +1,4 @@
-"""Encode and scatter objects as soft-targets (Gaussian) over an xy grid."""
+"""Encode and scatter objects as soft-targets (Gaussian) over a grid."""
 
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ class SplatterHeatmap:
         Returns:
             Ground truth data with additional attributes.
         """
-        return self.splatter(grid_data)
+        return self.splatter_targets(grid_data)
 
     def preprocess_targets(
         self, grid_data: RegularGridData
@@ -73,8 +73,8 @@ class SplatterHeatmap:
         cuboids = grid_data.cuboids
 
         # Sort cuboids based off of cuboid categories.
-        inv = cuboids.categories.argsort()
-        cuboids = cuboids[inv]
+        inverse_indices = cuboids.categories.argsort()
+        cuboids = cuboids[inverse_indices]
 
         # Compute mask for valid categories.
         selected_categories = cuboids.categories.eq(
@@ -88,11 +88,11 @@ class SplatterHeatmap:
         out: Tuple[Tensor, Tensor] = torch.unique(
             cuboids.categories, return_inverse=True
         )
-        _, inv = out
-        cuboids.categories = inv[src]
+        _, inverse_indices = out
+        cuboids.categories = inverse_indices[src]
 
         # Compute the categories to contiguous set of ids.
-        inv_map = {v: k for k, v in label_to_index.items()}
+        inverse_map = {v: k for k, v in label_to_index.items()}
 
         offset_map = {}
         task_map = {}
@@ -103,21 +103,21 @@ class SplatterHeatmap:
 
         offsets = torch.as_tensor(
             [
-                offset_map[inv_map[int(cls_id.item())]]
+                offset_map[inverse_map[int(cls_id.item())]]
                 for cls_id in noncontiguous_categories
             ]
         )
 
         task_ids = torch.as_tensor(
             [
-                task_map[inv_map[int(cls_id.item())]]
+                task_map[inverse_map[int(cls_id.item())]]
                 for cls_id in noncontiguous_categories
             ]
         )
         return cuboids, offsets, task_ids
 
-    def splatter(self, grid_data: RegularGridData) -> Data:
-        """Splatter the ground truth annotations onto the xy (BEV) canvas.
+    def splatter_targets(self, grid_data: RegularGridData) -> Data:
+        """Splatter the ground truth annotations onto the canvas.
 
         Args:
             grid_data: Ground truth data.
@@ -129,7 +129,9 @@ class SplatterHeatmap:
         grid_data.cuboids = cuboids
 
         targets = grid_data.cuboids.params.clone()
-        indices_ij, mask = grid_data.grid.transform_from(targets[..., :2])
+        indices_ij, mask = grid_data.grid.convert_world_coordinates_to_grid(
+            targets[..., :2]
+        )
         indices_ij = indices_ij[mask]
 
         targets = targets[mask]
@@ -142,13 +144,13 @@ class SplatterHeatmap:
         grid_data.cuboids = grid_data.cuboids[mask]
         encoding = encode(targets)
 
-        downsampled_grid = grid_data.grid.downsample(self.network_stride)
-        L, W = downsampled_grid[0], downsampled_grid[1]
+        downsampled_grid = grid_data.grid.scale_grid(self.network_stride)
+        length, width = downsampled_grid[0], downsampled_grid[1]
         indices_ij = targets[..., :2].int()
         dimensions_lw = targets[..., 3:5]
 
-        T = len(self.tasks_cfg)
-        scores = torch.zeros((T, L, W))
+        num_tasks = len(self.tasks_cfg)
+        scores = torch.zeros((num_tasks, length, width))
         indices_tij = torch.cat((task_ids[:, None], indices_ij), dim=1)
 
         if len(indices_ij) > 0:
@@ -163,24 +165,30 @@ class SplatterHeatmap:
                 indices_ij=indices_ij[inv],
                 dims_lw=dimensions_lw[inv],
                 scores=scores,
-                shape=[L, W],
+                grid_size=[length, width],
             )
 
-        perm = [0, 3, 1, 2]
+        permutation = [0, 3, 1, 2]
         offsets = scatter_nd(
-            indices_tij, src=offsets, shape=[T, L, W, 1], perm=perm
+            indices_tij,
+            src=offsets,
+            grid_shape=[num_tasks, length, width, 1],
+            permutation=permutation,
         )[None]
 
         mask = scatter_nd(
             indices_tij,
             torch.ones_like(task_ids, dtype=torch.bool),
-            shape=[T, L, W, 1],
-            perm=perm,
+            grid_shape=[num_tasks, length, width, 1],
+            permutation=permutation,
         )[None]
 
-        R = encoding.shape[1]
+        num_regressands = encoding.shape[1]
         encoding = scatter_nd(
-            indices_tij, encoding, shape=[T, L, W, R], perm=perm
+            indices_tij,
+            encoding,
+            grid_shape=[num_tasks, length, width, num_regressands],
+            permutation=permutation,
         )[None]
 
         grid_data.targets = GridTargets(
@@ -198,7 +206,7 @@ def scatter_gaussian_targets(
     indices_ij: Tensor,
     dims_lw: Tensor,
     scores: Tensor,
-    shape: List[int],
+    grid_size: List[int],
 ) -> Tensor:
     """Scatter the Gaussian targets onto the BEV plane.
 
@@ -207,7 +215,7 @@ def scatter_gaussian_targets(
         indices_ij: (N,2) Tensor of the xy object centers.
         dims_lw: (N,2) Tensor of length and width of the objects.
         scores: (N,1) Tensor of confidence scores.
-        shape: (3,) Shape of the grid.
+        grid_size: (3,) Size of the grid.
 
     Returns:
         The bird's-eye view plane scattered with Gaussian targets.
@@ -223,15 +231,15 @@ def scatter_gaussian_targets(
             task_indices_ij, sigma, radius=3
         )
         uv_coordinates, response, _ = clip_to_viewport(
-            uv_coordinates, response, shape[0], shape[1]
+            uv_coordinates, response, grid_size[0], grid_size[1]
         )
-        raveled_indices = ravel_multi_index(uv_coordinates, shape)
+        raveled_indices = ravel_multi_index(uv_coordinates, grid_size)
         out: Tuple[Tensor, Tensor] = torch.unique(
             raveled_indices, return_inverse=True
         )
         raveled_indices, inverse_indices = out
         index = inverse_indices[:, None]
-        uv_coordinates = unravel_index(raveled_indices, shape=shape)
+        uv_coordinates = unravel_index(raveled_indices, shape=grid_size)
         reduced_response = torch.scatter_reduce(
             response,
             dim=0,

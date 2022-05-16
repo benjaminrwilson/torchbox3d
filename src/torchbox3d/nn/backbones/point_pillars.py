@@ -40,7 +40,7 @@ class PointPillars(LightningModule):
             ReLU(inplace=True),
         )
 
-    def pointnet(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def pointnet(self, features: Tensor) -> Tuple[Tensor, Tensor]:
         """Apply simple PointNet to the input.
 
         Args:
@@ -51,27 +51,29 @@ class PointPillars(LightningModule):
         """
         for layer in self.pointnet_layers:
             if isinstance(layer, BatchNorm1d):
-                x = layer(x.transpose(1, 2)).transpose(1, 2)
+                features = layer(features.transpose(1, 2)).transpose(1, 2)
             else:
-                x = layer(x)
-        x, indices = x.max(dim=1)
-        return x, indices
+                features = layer(features)
+        features, indices = features.max(dim=1)
+        return features, indices
 
     def forward(  # type: ignore[override]
-        self, data: RegularGridData
+        self, grid_data: RegularGridData
     ) -> Dict[str, Tensor]:
         """Compute PointPillars forward pass.
 
         Args:
-            data: Input data.
+            grid_data: Input data.
 
         Returns:
             A dictionary of layer names to outputs.
         """
-        indices = data.cells.C.long()
-        x = data.cells.F
-        x, _ = self.pointnet(x)
-        canvas = self.pillar_scatter(x, indices, data.grid)
+        indices = grid_data.cells.indices.long()
+        values = grid_data.cells.values
+        counts = grid_data.cells.counts
+
+        values, _ = self.pointnet(values)
+        canvas = pillar_scatter(indices, values, counts, grid_data.grid)
 
         if self.debug:
             path = Path.home() / "code" / "bev.png"
@@ -82,25 +84,30 @@ class PointPillars(LightningModule):
         outputs = {"out": canvas}
         return outputs
 
-    def pillar_scatter(
-        self, x: Tensor, indices: Tensor, grid: RegularGrid
-    ) -> Tensor:
-        """Scatter the pillars on the BEV canvas.
 
-        Args:
-            x: Input data.
-            indices: Indices to emplace the input data.
-            grid: Voxel grid attributes.
+def pillar_scatter(
+    indices: Tensor, values: Tensor, points_per_cell: Tensor, grid: RegularGrid
+) -> Tensor:
+    """Scatter the pillars on the BEV canvas.
 
-        Returns:
-            The BEV canvas with scatter pillar encodings.
-        """
-        L, W = grid.grid_size[:2]
-        B = int(indices[..., -1].max().item() + 1)
-        D = int(x.shape[-1])
+    Args:
+        indices: Indices to emplace the input data.
+        values: Input data.
+        points_per_cell: Number of points per cell.
+        grid: Voxel grid attributes.
 
-        canvas: Tensor = scatter_nd(
-            indices, src=x, shape=[W, L, B, D], perm=[2, 3, 0, 1]
-        )
-        canvas = canvas.reshape(B, -1, L, W)
-        return canvas
+    Returns:
+        The BEV canvas with scatter pillar encodings.
+    """
+    length, width = grid.grid_size[:2]
+    num_batches = int(indices[..., -1].max().item() + 1)
+    num_features = int(values.shape[-1])
+
+    canvas: Tensor = scatter_nd(
+        indices,
+        src=values,
+        grid_shape=[width, length, num_batches, num_features],
+        permutation=[2, 3, 0, 1],
+    )
+    canvas = canvas.reshape(num_batches, -1, length, width)
+    return canvas

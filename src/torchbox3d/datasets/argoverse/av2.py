@@ -30,8 +30,8 @@ class AV2(Dataset, data_utils.Dataset[Data]):
 
     Args:
         transform: Callable transformation applied to each datum.
-        sensor_cache:
-        label_to_idx:
+        sensor_cache: Argoverse 2 sweep metadata.
+        label_to_idx: Mapping from label to unique index.
     """
 
     transform: Optional[Callable[[Data], Data]] = None

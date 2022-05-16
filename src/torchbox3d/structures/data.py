@@ -21,6 +21,7 @@ class Data(TensorStruct):
     cuboids: Cuboids
     coordinates_m: Tensor
     values: Tensor
+    counts: Tensor
     uuids: Tuple[str, ...]
 
 

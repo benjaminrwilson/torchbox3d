@@ -47,14 +47,18 @@ class Voxelize:
             The data with voxelized points.
         """
         values = torch.cat((grid_data.coordinates_m, grid_data.values), dim=-1)
-        indices, mask = self.grid.transform_from(grid_data.coordinates_m)
-        indices, values, _ = self.grid.cluster(
+        indices, mask = self.grid.convert_world_coordinates_to_grid(
+            grid_data.coordinates_m
+        )
+        indices, values, counts = self.grid.cluster(
             indices[mask], values[mask], self.cluster_type
         )
 
         grid_data.grid = self.grid
         grid_data.values = values
-        grid_data.cells = SparseTensor(values=values, indices=indices)
+        grid_data.cells = SparseTensor(
+            values=values, indices=indices, counts=counts
+        )
         return grid_data
 
 
@@ -93,12 +97,16 @@ class Pillarize:
             The clustered grid data.
         """
         values = torch.cat((grid_data.coordinates_m, grid_data.values), dim=-1)
-        indices, mask = self.grid.transform_from(grid_data.coordinates_m)
+        indices, mask = self.grid.convert_world_coordinates_to_grid(
+            grid_data.coordinates_m
+        )
         indices, values, counts = self.grid.cluster(
             indices[mask], values[mask], cluster_type=ClusterType.CONCATENATE
         )
 
         grid_data.grid = self.grid
         grid_data.values = values
-        grid_data.cells = SparseTensor(values=values, indices=indices)
+        grid_data.cells = SparseTensor(
+            values=values, indices=indices, counts=counts
+        )
         return grid_data

@@ -1,4 +1,4 @@
-"""An N-Dimensional grid class."""
+"""Spatially structured grid classes."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import List, Tuple
 import torch
 from torch import Tensor
 
-from torchbox3d.math.conversions import convert_world_coordinates_to_grid
+from torchbox3d.math.conversions import world_to_grid_coordinates
 from torchbox3d.math.ops.cluster import ClusterType, cluster_grid
 
 
@@ -30,12 +30,12 @@ class RegularGrid:
     delta_m_per_cell: Tuple[float, ...]
 
     def __post_init__(self) -> None:
-        """Validate the NDGrid sizes."""
+        """Validate the instance variables."""
         d_min = len(self.min_world_coordinates_m)
         d_max = len(self.max_world_coordinates_m)
         d_delta = len(self.delta_m_per_cell)
 
-        if d_min != d_max and d_max != d_delta:
+        if d_min not in (d_delta, d_max):
             raise ValueError(
                 "`min_world_coordinates_m`, `max_world_coordinates_m` "
                 "and `delta_m_per_cell` "
@@ -44,7 +44,7 @@ class RegularGrid:
 
     @property
     def num_dimensions(self) -> int:
-        """Return the dimension of the grid."""
+        """Return number of dimensions in the grid."""
         return len(self.min_world_coordinates_m)
 
     @cached_property
@@ -52,9 +52,13 @@ class RegularGrid:
         """Return the size of the grid."""
         min_world_coordinates_m = torch.as_tensor(self.min_world_coordinates_m)
         max_world_coordinates_m = torch.as_tensor(self.max_world_coordinates_m)
-        range_m = max_world_coordinates_m - min_world_coordinates_m
-        dims: List[int] = self.scale_and_center_coordinates(range_m).tolist()
-        return tuple(dims)
+        world_coordinates_range_m = (
+            max_world_coordinates_m - min_world_coordinates_m
+        )
+        dimensions: List[int] = self.scale_and_center_coordinates(
+            world_coordinates_range_m
+        ).tolist()
+        return tuple(dimensions)
 
     def scale_and_center_coordinates(
         self, coordinates_m: Tensor, align_corners: bool = True
@@ -63,6 +67,7 @@ class RegularGrid:
 
         Args:
             coordinates_m: (N,D) Coordinates in meters.
+            align_corners: Boolean flag to treat indices as grid vertices.
 
         Returns:
             The scaled, centered positions.
@@ -82,16 +87,18 @@ class RegularGrid:
             indices += 0.5
         return indices.long()
 
-    def transform_from(self, coordinates_m: Tensor) -> Tuple[Tensor, Tensor]:
+    def convert_world_coordinates_to_grid(
+        self, coordinates_m: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         """Transform positions from world coordinates to grid coordinates (in meters).
 
         Args:
             coordinates_m: (N,D) Coordinates in meters.
 
         Returns:
-            (N,D) list of quantized grid coordinates.
+            The grid indices and the cropped coordinate mask.
         """
-        indices, mask = convert_world_coordinates_to_grid(
+        indices, mask = world_to_grid_coordinates(
             coordinates_m,
             list(self.min_world_coordinates_m),
             list(self.delta_m_per_cell),
@@ -99,10 +106,20 @@ class RegularGrid:
         )
         return indices, mask
 
-    def downsample(self, stride: int) -> Tuple[int, ...]:
-        """Downsample the grid coordinates."""
-        downsampled_dims = [int(d / stride) for d in self.grid_size]
-        return tuple(downsampled_dims)
+    def scale_grid(self, stride: int) -> Tuple[int, ...]:
+        """Downsample the grid coordinates.
+
+        Args:
+            stride: Downsampling factor.
+
+        Returns:
+            The downsampled grid size.
+        """
+        grid_size = torch.as_tensor(self.grid_size)
+        scaled_grid_size: List[int] = (
+            torch.ceil(grid_size / stride).int().tolist()
+        )
+        return tuple(scaled_grid_size)
 
     @cached_property
     def grid_offset_m(self) -> Tuple[float, ...]:
@@ -121,12 +138,12 @@ class RegularGrid:
         """Cluster a set of values by their respective positions.
 
         Args:
-            indices: (N,3) Spatial positions in meters.
-            values: (N,F) Values associated with each spatial position.
+            indices: (N,D) Grid indices.
+            values: (N,F) Grid values.
             cluster_type: Cluster type to be applied.
 
         Returns:
-            The spatial indices, values, and counts.
+            The clustered grid indices, values, and counts.
 
         Raises:
             NotImplementedError: If the voxelization mode is not implemented.

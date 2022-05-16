@@ -185,7 +185,7 @@ class CenterPoint(Detector):
         # Decode predictions.
         cuboids: Cuboids = decode(
             outputs_list,
-            voxel_grid=voxel_grid,
+            grid=voxel_grid,
             network_stride=self.network_stride,
             max_k=self.max_k,
             to_nonconsecutive=self.to_nonconsecutive,
