@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from glob import glob
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
-import pandas as pd
+import polars as pl
 import torch.utils.data as data_utils
 from av2.datasets.sensor.sensor_dataloader import LIDAR_PATTERN
 from av2.datasets.sensor.utils import convert_path_to_named_record
@@ -35,25 +36,39 @@ class AV2(Dataset, data_utils.Dataset[Data]):
     """
 
     transform: Optional[Callable[[Data], Data]] = None
-    sensor_cache: pd.DataFrame = field(init=False)
+    sensor_cache: pl.DataFrame = field(init=False)
     label_to_idx: Dict[str, int] = field(init=False)
 
     def __post_init__(self) -> None:
         """Initialize instance variables."""
         super().__post_init__()
+
         self.label_to_idx = DATASET_TO_TAXONOMY[self.name]
+        self._load_metadata()
 
+    def _load_metadata(self) -> None:
         src_dir = Path(self.dataset_dir) / self.split
-        lidar_paths = sorted(
-            src_dir.glob(LIDAR_PATTERN), key=lambda x: int(x.stem)
-        )
-        records = [convert_path_to_named_record(p) for p in lidar_paths]
+        num_subdirs = len(str(src_dir).split("/"))
 
-        self.sensor_cache = pd.DataFrame(records)
-        self.sensor_cache.set_index(
-            ["log_id", "sensor_name", "timestamp_ns"], inplace=True
+        pattern = str(src_dir / LIDAR_PATTERN)
+        records = pl.DataFrame([{"lidar_path": x} for x in glob(pattern)])
+        records = records[
+            pl.col("lidar_path").str.split_exact("/", num_subdirs + 3)
+        ].unnest("lidar_path")
+
+        indices = [num_subdirs, num_subdirs + 2, num_subdirs + 3]
+        columns = [records.columns[i] for i in indices]
+        self.sensor_cache = records[:, indices].rename(
+            {
+                k: v
+                for k, v in zip(
+                    columns, ["log_id", "sensor_name", "timestamp_ns"]
+                )
+            }
         )
-        self.sensor_cache.sort_index(inplace=True)
+        self.sensor_cache = self.sensor_cache.sort(
+            by=self.sensor_cache.columns
+        )
 
     def __len__(self) -> int:
         """Return the length of the dataset records."""
@@ -68,14 +83,14 @@ class AV2(Dataset, data_utils.Dataset[Data]):
         Returns:
             An item of the dataset.
         """
-        record: Tuple[str, str, int] = self.sensor_cache.iloc[index].name
-        log_id, sensor_name, timestamp_ns = record
+        record: Tuple[str, ...] = self.sensor_cache.row(index)
+        log_id, sensor_name, timestamp_ns = record[0], record[1], record[2]
         datum = read_sweep_data(
             self.dataset_dir,
             self.split,
             log_id,
             sensor_name,
-            timestamp_ns,
+            int(timestamp_ns.split(".")[0]),
             self.label_to_idx,
         )
         if self.transform:
