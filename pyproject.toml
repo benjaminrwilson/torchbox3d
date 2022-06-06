@@ -47,3 +47,6 @@ addopts = "--cov-report term-missing:skip-covered --cov src"
 testpaths = [
     "tests",
 ]
+
+[tool.pylint.MASTER]
+disable = "E1101"

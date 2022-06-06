@@ -6,12 +6,11 @@ import logging
 from dataclasses import dataclass, field
 from glob import glob
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple, cast
 
 import polars as pl
 import torch.utils.data as data_utils
 from av2.datasets.sensor.sensor_dataloader import LIDAR_PATTERN
-from av2.datasets.sensor.utils import convert_path_to_named_record
 from torch.utils.data.dataloader import DataLoader
 
 from torchbox3d.datasets.argoverse.constants import DATASET_TO_TAXONOMY
@@ -83,8 +82,9 @@ class AV2(Dataset, data_utils.Dataset[Data]):
         Returns:
             An item of the dataset.
         """
-        record: Tuple[str, ...] = self.sensor_cache.row(index)
-        log_id, sensor_name, timestamp_ns = record[0], record[1], record[2]
+        log_id, sensor_name, timestamp_ns = cast(
+            Tuple[str, str, str], self.sensor_cache.row(index)
+        )
         datum = read_sweep_data(
             self.dataset_dir,
             self.split,
@@ -110,9 +110,8 @@ class ArgoverseDataModule(DataModule):
         name: Name of the dataset.
     """
 
-    def __post_init__(self) -> None:
-        """Initialize the meta-datamodule."""
-        return super().__post_init__()
+    train_dataset = field(init=False)
+    val_dataset = field(init=False)
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Dataset setup for requested splits.

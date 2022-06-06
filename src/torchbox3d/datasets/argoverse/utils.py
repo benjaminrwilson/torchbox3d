@@ -6,6 +6,7 @@ from typing import Dict
 
 import torch
 from av2.utils.io import read_feather
+from torch import Tensor
 
 from torchbox3d.datasets.argoverse.constants import LABEL_ATTR
 from torchbox3d.structures.cuboids import Cuboids
@@ -38,7 +39,7 @@ def read_sweep_data(
     """
     log_dir = dataset_dir / split / log_id
     sweep_path = log_dir / "sensors" / sensor_name / f"{timestamp_ns}.feather"
-    lidar = torch.as_tensor(
+    lidar: Tensor = torch.as_tensor(
         read_feather(sweep_path)
         .loc[:, ["x", "y", "z", "intensity"]]
         .to_numpy(),
