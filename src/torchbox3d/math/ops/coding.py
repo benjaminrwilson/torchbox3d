@@ -130,7 +130,6 @@ def _decode_lwh(
     task_offset = 0
     cuboid_list: DefaultDict[str, List[Tensor]] = defaultdict(list)
     for _, data in enumerate(task_outputs_list):
-
         # Get max scores and offsets within each task.
         scores, offsets = data.logits.max(dim=1, keepdim=True)
         offsets += task_offset

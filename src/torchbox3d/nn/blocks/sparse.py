@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Tuple, Union
 
 import torchsparse.nn as spnn
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core import LightningModule
 from torch import nn
 from torch.nn import Sequential
 from torchsparse.tensor import SparseTensor

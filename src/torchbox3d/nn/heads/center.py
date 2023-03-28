@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import List, Tuple
 
 from omegaconf import DictConfig
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core import LightningModule
 from torch import nn
 from torch.functional import Tensor
 

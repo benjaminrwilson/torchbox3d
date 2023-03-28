@@ -8,16 +8,17 @@ dependencies:
   - kornia
   - matplotlib-base
   - nox
-  - numpy ==1.21.5
+  - numpy
   - omegaconf
   - pandas
   - pip
   - pyarrow
   - python
-  - pytorch-gpu ==1.11.0
+  - pytorch
   - pytorch-lightning
   - pyyaml
   - rich
   - scipy
+  - tensorboard
   - torchsparse
   - torchvision

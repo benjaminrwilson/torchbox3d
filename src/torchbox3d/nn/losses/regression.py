@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List
 
 import torch
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core import LightningModule
 from torch import Tensor
 from torch.nn.modules.loss import L1Loss
 

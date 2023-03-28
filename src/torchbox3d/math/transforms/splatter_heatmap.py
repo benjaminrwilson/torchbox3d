@@ -200,7 +200,6 @@ class SplatterHeatmap:
         return grid_data
 
 
-@torch.jit.script
 def scatter_gaussian_targets(
     task_ids: Tensor,
     indices_ij: Tensor,

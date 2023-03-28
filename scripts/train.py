@@ -10,8 +10,8 @@ import torch.multiprocessing as mp
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.core import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.trainer import Trainer
@@ -29,6 +29,7 @@ HYDRA_PATH: Final[Path] = Path(__file__).resolve().parent.parent / "conf"
 @hydra.main(
     config_path=str(HYDRA_PATH),
     config_name="config",
+    version_base=None,
 )
 def train(cfg: DictConfig) -> None:
     """Training entrypoint.
@@ -49,44 +50,9 @@ def train(cfg: DictConfig) -> None:
             cfg.trainer.devices = 1
 
     datamodule = get_datamodule(cfg)
-    trainer = get_trainer(cfg)
-    model = get_model(cfg, datamodule, trainer.num_devices)
+    trainer = instantiate(cfg.trainer)
+    model = get_model(cfg, datamodule, 1)
     trainer.fit(model, datamodule=datamodule)
-
-
-def get_trainer(cfg: DictConfig) -> Trainer:
-    """Get the trainer for training.
-
-    Args:
-        cfg: Trainer configuration.
-
-    Returns:
-        Trainer: The PyTorch Lightning trainer.
-    """
-    lr_monitor = LearningRateMonitor(logging_interval="step")
-    logger = TensorBoardLogger(
-        ".",
-        name="",
-        version="",
-        default_hp_metric=False,
-    )
-
-    strategy: Optional[DDPStrategy] = DDPStrategy(
-        find_unused_parameters=False,
-        gradient_as_bucket_view=True,
-    )
-    if not torch.cuda.is_available():
-        cfg.trainer.devices = 1
-        cfg.trainer.accelerator = "cpu"
-        strategy = None
-
-    trainer = Trainer(
-        **cfg.trainer,
-        logger=logger,
-        strategy=strategy,
-        callbacks=[lr_monitor],
-    )
-    return trainer
 
 
 def get_model(

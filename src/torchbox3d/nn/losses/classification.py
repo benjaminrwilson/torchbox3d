@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 import torch
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core import LightningModule
 from torch import Tensor
 
 from torchbox3d.math.ops.index import ravel_multi_index

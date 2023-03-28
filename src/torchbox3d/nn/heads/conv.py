@@ -3,7 +3,7 @@ from typing import List
 
 import torch
 from omegaconf import DictConfig
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core import LightningModule
 from torch import Tensor, nn
 from torch.nn import Sequential
 

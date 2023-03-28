@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 
 from omegaconf import DictConfig
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core import LightningModule
 from torch import Tensor
 from torch.nn import BatchNorm2d, Conv2d, ReLU, Sequential
 

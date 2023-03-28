@@ -8,8 +8,8 @@ import hydra
 import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig
+from pytorch_lightning.core import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
