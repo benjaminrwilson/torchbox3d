@@ -2,19 +2,15 @@
 
 import logging
 from pathlib import Path
-from typing import Final, Optional, cast
+from typing import Final, cast
 
 import hydra
 import torch
 import torch.multiprocessing as mp
 from hydra.utils import instantiate
 from omegaconf import DictConfig
-from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 from torchbox3d.datasets.argoverse.av2 import ArgoverseDataModule

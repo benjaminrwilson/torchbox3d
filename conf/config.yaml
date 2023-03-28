@@ -39,6 +39,11 @@ trainer:
     gradient_as_bucket_view: true
     static_graph: true
 
+  logger:
+    _target_: pytorch_lightning.loggers.TensorBoardLogger
+    save_dir: ${hydra:runtime.output_dir}
+    default_hp_metric: true
+
   ########################################################################################################
   # Debugging / Subsampling options                                                                      #
   ########################################################################################################
